@@ -5,6 +5,7 @@ cd $PREFIX/Knotty
 cmake -H. -Bbuild -DCMAKE_CXX_COMPILER=g++
 cmake --build build
 # make a bin folder and copy the HFold binary into it
+echo $PREFIX
 # mkdir -p $PREFIX/bin && cp Knotty $PREFIX/bin/Knotty
 # optional: removes all non-directory files 
-# find . -maxdepth 1 -type f -delete
+find . -maxdepth 1 -type f -delete
