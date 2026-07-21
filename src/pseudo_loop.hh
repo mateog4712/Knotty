@@ -177,15 +177,15 @@ private:
 	void Trace_PRiloop(const Index4D &x, MType type, energy_t e);
 	void Trace_POiloop(const Index4D &x, MType type, energy_t e);
 
-	// void Trace_PLmloop0(const Index4D &x, MType type, energy_t e);
-	// void Trace_PMmloop0(const Index4D &x, MType type, energy_t e);
-	// void Trace_PRmloop0(const Index4D &x, MType type, energy_t e);
-	// void Trace_POmloop0(const Index4D &x, MType type, energy_t e);
+	void Trace_PLmloop0(const Index4D &x, MType type, energy_t e);
+	void Trace_PMmloop0(const Index4D &x, MType type, energy_t e);
+	void Trace_PRmloop0(const Index4D &x, MType type, energy_t e);
+	void Trace_POmloop0(const Index4D &x, MType type, energy_t e);
 
-	// void Trace_PLmloop1(const Index4D &x, MType type, energy_t e);
-	// void Trace_PMmloop1(const Index4D &x, MType type, energy_t e);
-	// void Trace_PRmloop1(const Index4D &x, MType type, energy_t e);
-	// void Trace_POmloop1(const Index4D &x, MType type, energy_t e);
+	void Trace_PLmloop1(const Index4D &x, MType type, energy_t e);
+	void Trace_PMmloop1(const Index4D &x, MType type, energy_t e);
+	void Trace_PRmloop1(const Index4D &x, MType type, energy_t e);
+	void Trace_POmloop1(const Index4D &x, MType type, energy_t e);
 
 	// void Trace_PfromL(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,MType type, energy_t e);
 	// void Trace_PfromM(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,MType type, energy_t e);
@@ -245,6 +245,7 @@ private:
 	}
 	energy_t calc_PXiloop(const Index4D &x, MType type);
 	energy_t calc_PXmloop(const Index4D &x, MType type);
+	energy_t calc_PfromX(const Index4D &x, MType type);
 	energy_t generic_decomposition(int i, int j, int k, int l, int decomp_cases, candidate_lists &CL, const TriangleMatrix &w, const MatrixSlices3D &PX, int LMRO_cases = 0, energy_t penalty = 0);
 	inline bool impossible_case(const Index4D &x) const {
     	return !x.is_valid(n);
@@ -315,7 +316,7 @@ private:
 		static std::array<candidate_lists*,4> matrices{PfromL_CL, PfromM_CL, PfromR_CL, PfromO_CL};
 		return *matrices[static_cast<int>(type)];
 	}
-	inline TraceArrows &pseudo_loop::tas_by_mtype(MType type) {
+	inline TraceArrows& tas_by_mtype(MType type) {
 		static std::array<TraceArrows *, 4> tas{&ta->PL, &ta->PM, &ta->PR, &ta->PO};
 		return *tas[static_cast<int>(type)];
 	}

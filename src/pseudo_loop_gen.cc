@@ -344,9 +344,7 @@ void pseudo_loop::recompute_slice_PXdecomp(const Index4D &x,int decomp_cases,can
                     PXtgt.set(i, j, k, l, energy);
                 } else {
                     // decomposition cases of compute_PXmloop0_sp(i,j,k,l):
-                    int min_energy =
-                        generic_decomposition(i, j, k, l, decomp_cases, CL, w,
-                                              PXsrc);
+                    int min_energy = generic_decomposition(i, j, k, l, decomp_cases, CL, w, PXsrc);
                     PXtgt.setI(i, j, k, l, min_energy);
                 }
             }
@@ -379,10 +377,6 @@ energy_t pseudo_loop::recompute_PX(const Index4D &x, MType type) {
     }
 
     if ( min_energy < INF/2 ) {
-        // std::cerr << "  ! " << best_d_ << " " << best_dp_ << " "
-        //           << (char)best_tgt_type_ << " " << best_tgt_energy_ << " "
-        //           << min_energy << " " << ((arrow != nullptr) ? "ARROW" : "CAND")
-        //           << std::endl;
         return min_energy;
     }
 
@@ -519,7 +513,6 @@ energy_t pseudo_loop::recompute_PX(const Index4D &x, MType type) {
 
     // from case
     temp = calc_PfromX(x_shrunk, type) + penalty(x,gamma2,type);
-    //std::cerr << "  " << x_shrunk << " " << temp << " " << penalty(x,gamma2,type) << std::endl;
     if (temp < min_energy) {
         min_energy = temp;
         best_tgt_energy_ = temp - penalty(x,gamma2,type);
