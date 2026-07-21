@@ -26,16 +26,16 @@ void pseudo_loop::allocate_space()
 
 	ta = new MasterTraceArrows(n, index);
 
-    PfromL_CL = new candidate_lists(MType::L, n);
-    PfromM_CL = new candidate_lists(MType::M, n);
-    PfromR_CL = new candidate_lists(MType::R, n);
-    PfromO_CL = new candidate_lists(MType::O, n);
-    PLmloop0_CL = new candidate_lists(MType::L, n);
-	PMmloop0_CL = new candidate_lists(MType::M, n);
-    PRmloop0_CL = new candidate_lists(MType::R, n);
-    POmloop0_CL = new candidate_lists(MType::O, n);
+    PfromL_CL = new candidate_lists(MType::L, n+1);
+    PfromM_CL = new candidate_lists(MType::M, n+1);
+    PfromR_CL = new candidate_lists(MType::R, n+1);
+    PfromO_CL = new candidate_lists(MType::O, n+1);
+    PLmloop0_CL = new candidate_lists(MType::L, n+1);
+	PMmloop0_CL = new candidate_lists(MType::M, n+1);
+    PRmloop0_CL = new candidate_lists(MType::R, n+1);
+    POmloop0_CL = new candidate_lists(MType::O, n+1);
 
-    PK_CL.resize(n);
+    PK_CL.resize(n+1);
 
 	fres.resize(n+1,-2);
 	structure = std::string (n+1,'.');

@@ -6,6 +6,7 @@
 #include <vector>
 #include <array>
 #include <string>
+#include <algorithm>
 
 static constexpr std::array<std::pair<char,char>, 4> brackets = {{
     {'(', ')'},
