@@ -1,55 +1,53 @@
-# Ian Wark March 26 2018
-
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 project(Knotty)
 
-# set SIMFOLD_HOME to simfold folder so Knotty binary can find it
-set(SIMFOLD_HOME ${CMAKE_SOURCE_DIR}/simfold)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Directory for parameters
+set(PARAMS_DIR "${CMAKE_SOURCE_DIR}/params")  # or CMAKE_INSTALL_PREFIX based path
 
-# debugging flags (makes the program significantly slower)
-# -fsanitize=address    # out-of-bounds reads/writes
-# -fsanitize=undefined  # undefined behavior (e.g. int overflow)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -g -O3")
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
 
+set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -DNDEBUG") # conside -NDEBUG if I want to disable asserts for performance gain
 
-# SW - deactivate asserts; use for 'production' compile
-add_definitions(-DNDEBUG -Wno-unused-variable -Wno-unused-but-set-variable)
-
-# turn off some warnings
-add_definitions(-Wno-format)
-
-# build simfold
-add_subdirectory(simfold)
-
-# build Knotty
 SET(SOURCE
-  src/W_final.cpp
-  src/pseudo_loop.cpp
-  src/V_final.cpp
-  src/VM_final.cpp
-  src/h_common.cpp
-  src/trace_arrow.cpp
-  src/candidate_list.cpp
-  src/knotty.cpp
-  src/param_path.cpp
+  src/pseudo_loop.cc 
+  src/pseudo_loop_gen.cc
+  src/pseudo_loop_trace.cc
+  src/Knotty.cc
+  src/cmdline.cc
+  src/candidate_list.cc
+  src/trace_arrow.cc
 )
 
-# pass SIMFOLD_HOME to binary
-add_definitions(-DSIMFOLD_HOME=\"${SIMFOLD_HOME}\")
+set(vienna_SOURCE
+    src/ViennaRNA/params/default.cc
+    src/ViennaRNA/params/params.cc
+    src/ViennaRNA/params/io.cc
+    src/ViennaRNA/model.cc 
+    src/ViennaRNA/utils.cc
+)
 
-# set path for executable to be created
-# set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR})
-# create executable
-add_executable(knotty ${SOURCE})
-# set executable name
-set_target_properties(knotty PROPERTIES OUTPUT_NAME knotty)
+add_library(RNA STATIC ${vienna_SOURCE})
+# configure_file(RNA.pc.in RNA.pc @ONLY)
 
-# Install Knotty into the bin directory (Needed for conda)
-install(TARGETS knotty RUNTIME DESTINATION bin)
+target_include_directories(RNA PRIVATE .)
 
-# enable required C++11 features
-target_compile_features(knotty PRIVATE cxx_nullptr)
+add_executable(Knotty ${SOURCE})
 
-# link to simfold
-target_link_libraries(knotty LINK_PUBLIC simfold)
+target_link_libraries(Knotty PRIVATE RNA)
+
+# Pass it as a compile definition
+target_compile_definitions(Knotty PRIVATE 
+    PARAMS_DIR="${PARAMS_DIR}"
+)
+
+# Install HFold into the bin directory
+install(TARGETS Knotty RUNTIME DESTINATION bin)
+
+include_directories(src)

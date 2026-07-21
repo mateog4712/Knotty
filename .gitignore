@@ -11,10 +11,18 @@
 *.gch
 *.pch
 
+# Linker files
+*.ilk
+
+# Debugger Files
+*.pdb
+
 # Compiled Dynamic libraries
 *.so
 *.dylib
 *.dll
+*.so.*
+
 
 # Fortran module files
 *.mod
@@ -31,22 +39,38 @@
 *.out
 *.app
 
+# Build directories
+build/
+Build/
+build-*/
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+install_manifest.txt
+compile_commands.json
+
+# Temporary files
+*.tmp
+*.log
+*.bak
+*.swp
+
+# vcpkg
+vcpkg_installed/
+
+# debug information files
+*.dwo
+
+# test output & cache
+Testing/
+.cache/
+
 # build
 /build/
-
-# Other
-*~
-configure
-Makefile.in
-_inst
-_build
-aclocal.m4
-config.h.in
-config
-src/Makefile.in
-autom4te.cache
-Doc
 bash.sh
-bashStructure.sh
-out.txt
-simfold/libsimfold.a
+*.ps
+*.txt
+*.sh

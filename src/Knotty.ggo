@@ -1,0 +1,41 @@
+package "Braidz"
+version "1.0"
+args "--unamed-opts=input"
+
+purpose "Pseudoknotted minimum free energy folding of RNAs"
+
+usage "Braidz [options] [sequence]"
+
+description "Read RNA sequence from stdin or cmdline; predict minimum\nfree energy and optimum structure"
+
+# Options
+
+option "input-file" i
+    "Give a path to an input file containing the sequence (and input structure if known)"
+    string optional
+
+option "output-file" o
+    "Give a path to an output file which will the sequence, and its structure and energy"
+    string optional
+
+option "dangles" d
+    "Specify the dangle model to be used"
+    int default="2" optional
+
+option "paramFile" P
+    "Read energy parameters from paramfile, instead of using the default parameter set."
+    string optional
+
+option "windowing" w
+    "Split the sequence into windows and predict every window to reduce compute time/space requirement"
+    int default="125" argoptional optional
+
+option "noConv" -
+    "Do not convert DNA into RNA. This will use the Matthews 2004 parameters for DNA"
+    flag off
+
+option "noGU" -
+    "Turn off G-U and U-G (and G-T and T-G) base pairing"
+    flag off
+
+text "\nThe input sequence is read from standard input, unless it is\ngiven on the command line.\n"
