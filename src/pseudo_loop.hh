@@ -68,6 +68,9 @@ private:
 	TriangleMatrix WPP;	// similar to WP but has at least one base pair
 	TriangleMatrix WBP;	// similar to WB but has at least one base pair
 	
+	//! @brief array for pre-computed e_intP interior loop energies
+    //! SW precomputing internal loop energy yields tremendous speedup
+    std::vector<std::vector<int>> eIntP_;
 	TriangleMatrix P;					// the main loop for pseudoloops and bands
 	MatrixSlices3D PK;				// MFE of a TGB structure over gapped region [i,j] U [k,l]
 
@@ -141,30 +144,38 @@ private:
 
 
 	// Traceback //
-	// void backtrack();
-	// void Trace_W(cand_pos_t i, cand_pos_t j, energy_t e);
-	// void Trace_P(cand_pos_t i, cand_pos_t l, energy_t e);
-	// void Trace_V(cand_pos_t i, cand_pos_t j, energy_t e);
-	// void Trace_WM(cand_pos_t i, cand_pos_t j, energy_t e);
-	// void Trace_WMv(cand_pos_t i, cand_pos_t j, energy_t e);
-	// void Trace_WMp(cand_pos_t i, cand_pos_t j, energy_t e);
+	void recompute_slice_PK(const Index4D &x);
+	energy_t recompute_PX(const Index4D &x, MType type);
+	void recompute_slice_PXmloop0(const Index4D &x, MType type);
+	void recompute_slice_PXmloop1(const Index4D &x, MType type);
+	void recompute_slice_PfromX(const Index4D &x, MType type);
+	void recompute_slice_PXdecomp(const Index4D &x,int decomp_cases,candidate_lists &CL,const TriangleMatrix &w,const MatrixSlices3D &PXsrc,MatrixSlices3D &PXtgt);
 
-	// void Trace_WB(cand_pos_t i, cand_pos_t l, energy_t e);
-	// void Trace_WBP(cand_pos_t i, cand_pos_t l, energy_t e);
-	// void Trace_WP(cand_pos_t i, cand_pos_t l, energy_t e);
-	// void Trace_WPP(cand_pos_t i, cand_pos_t l, energy_t e);
+	void backtrack();
+	void Trace_W(cand_pos_t i, cand_pos_t j, energy_t e);
+	void Trace_P(cand_pos_t i, cand_pos_t l, energy_t e);
+	void Trace_V(cand_pos_t i, cand_pos_t j, energy_t e);
+	void Trace_WM(cand_pos_t i, cand_pos_t j, energy_t e);
+	void Trace_WMv(cand_pos_t i, cand_pos_t j, energy_t e);
+	void Trace_WMp(cand_pos_t i, cand_pos_t j, energy_t e);
 
-	// void Trace_PX(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l, MType type, energy_t e);
-	// void Trace_PXiloop(const Index4D &x, MType type, energy_t e);
-	// void Trace_PXmloop(const Index4D &x, MType type, energy_t e);
-	// void Trace_PXmloop0(const Index4D &x, MType type, energy_t e);
-	// void Trace_PXmloop1(const Index4D &x, MType type, energy_t e);
-	// void Trace_PfromX(const Index4D &x, MType type, energy_t e);
+	void Trace_WB(cand_pos_t i, cand_pos_t l, energy_t e);
+	void Trace_WBP(cand_pos_t i, cand_pos_t l, energy_t e);
+	void Trace_WP(cand_pos_t i, cand_pos_t l, energy_t e);
+	void Trace_WPP(cand_pos_t i, cand_pos_t l, energy_t e);
 
-	// void Trace_PLiloop(const Index4D &x, MType type, energy_t e);
-	// void Trace_PMiloop(const Index4D &x, MType type, energy_t e);
-	// void Trace_PRiloop(const Index4D &x, MType type, energy_t e);
-	// void Trace_POiloop(const Index4D &x, MType type, energy_t e);
+	void Trace_PK(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l, energy_t e);
+	void Trace_PX(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l, MType type, energy_t e);
+	void Trace_PXiloop(const Index4D &x, MType type, energy_t e);
+	void Trace_PXmloop(const Index4D &x, MType type, energy_t e);
+	void Trace_PXmloop0(const Index4D &x, MType type, energy_t e);
+	void Trace_PXmloop1(const Index4D &x, MType type, energy_t e);
+	void Trace_PfromX(const Index4D &x, MType type, energy_t e);
+
+	void Trace_PLiloop(const Index4D &x, MType type, energy_t e);
+	void Trace_PMiloop(const Index4D &x, MType type, energy_t e);
+	void Trace_PRiloop(const Index4D &x, MType type, energy_t e);
+	void Trace_POiloop(const Index4D &x, MType type, energy_t e);
 
 	// void Trace_PLmloop0(const Index4D &x, MType type, energy_t e);
 	// void Trace_PMmloop0(const Index4D &x, MType type, energy_t e);
@@ -194,6 +205,31 @@ private:
 	energy_t E_MLStem(const energy_t& vij,const energy_t& vi1j,const energy_t& vij1,const energy_t& vi1j1,cand_pos_t i, cand_pos_t j);
 	energy_t E_MbLoop(const energy_t WM2ij, const energy_t WM2ip1j, const energy_t WM2ijm1, const energy_t WM2ip1jm1, cand_pos_t i, cand_pos_t j);
 
+    //! precompute e_intP
+    void init_eIntP(cand_pos_t n) {
+        eIntP_.resize( n*(n+1)/2 );
+        for (int i=0; i<n; i++) {
+            for (int j=i+1; j<n; j++) {
+                int ij = index[i]+j-i;
+                eIntP_[ij].resize(MAXLOOP*MAXLOOP);
+                for (int x = 0; x < MAXLOOP; x++) {
+                    for (int xp = 0; xp < MAXLOOP && i+x+1+TURN < j-xp-1 ; xp++) {
+                        int xxp = x*MAXLOOP+xp;
+                        eIntP_[ij][xxp] = get_e_intP(i,i+x+1,j-xp-1,j);
+                    }
+                }
+            }
+        }
+    }
+	inline int get_intP(cand_pos_t i, cand_pos_t d, cand_pos_t dp, cand_pos_t j) const {
+        int x = d-i-1;
+        int xp = j-dp-1;
+
+        int ij = index[i]+j-i;
+        int xxp = x*MAXLOOP+xp;
+
+        return eIntP_[ ij ][ xxp ];
+    }
 	// penalty for closing pair i.l or l.i of a pseudoloop
 	static constexpr energy_t gamma2(cand_pos_t i, cand_pos_t l){
 		return 0;
@@ -278,6 +314,10 @@ private:
 	inline candidate_lists& PfromX_CL_by_mtype(MType type) {
 		static std::array<candidate_lists*,4> matrices{PfromL_CL, PfromM_CL, PfromR_CL, PfromO_CL};
 		return *matrices[static_cast<int>(type)];
+	}
+	inline TraceArrows &pseudo_loop::tas_by_mtype(MType type) {
+		static std::array<TraceArrows *, 4> tas{&ta->PL, &ta->PM, &ta->PR, &ta->PO};
+		return *tas[static_cast<int>(type)];
 	}
 };
 #endif /*PSEUDO_LOOP_H_*/

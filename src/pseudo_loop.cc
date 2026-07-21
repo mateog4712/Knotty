@@ -20,7 +20,7 @@ pseudo_loop::pseudo_loop(std::string seq, int dangle) : seq(seq), params_(vrna_p
 
 void pseudo_loop::allocate_space()
 {
-
+	init_eIntP(n+1);
 	TriangleMatrix::new_index(index,n+1);
 	MatrixSlices3D::construct_index(index3D,n);
 
@@ -302,15 +302,16 @@ void pseudo_loop::compute_PX(const Index4D &x, MType type){
 		// Hosna, July 11, 2014
 		// To avoid addition of close base pairs we check for the following here
 		if (x.difference(type)>TURN){
-			if(type == MType::O){
+			if(type == MType::M || type == MType::O){
 				if(x.i()==x.j() && x.k()==x.l()){
 					b3=gamma2(x.l(),x.i());
 				}
+			} else {
+				Index4D xp(x);
+				xp.shrink(type);
+				MatrixSlices3D &PfromX = PfromX_by_mtype(type);
+				b3 = PfromX.get(xp) + penalty(xp, gamma2, type);
 			}
-			Index4D xp(x);
-			xp.shrink(type);
-			MatrixSlices3D &PfromX = PfromX_by_mtype(type);
-			b3 = PfromX.get(xp) + penalty(xp, gamma2, type);
 		}
 	}
 	min_energy = std::min({b1,b2,b3});
@@ -318,12 +319,30 @@ void pseudo_loop::compute_PX(const Index4D &x, MType type){
 		PX.setI(x, min_energy);
 	}
 }
+
+void
+pseudo_loop::recompute_slice_PXmloop0(const Index4D &x, MType type) {
+    recompute_slice_PXdecomp(x, lmro_case(type),
+                             PXmloop0_CL_by_mtype(type), WB,
+                             PXmloop0_by_mtype(type), PXmloop0_by_mtype(type));
+}
+
+void pseudo_loop::recompute_slice_PXmloop1(const Index4D &x, MType type) {
+    recompute_slice_PXdecomp(x, lmro_case(type),
+                             PXmloop0_CL_by_mtype(type), WBP,
+                             PXmloop0_by_mtype(type), PXmloop1_by_mtype(type));
+}
+void
+pseudo_loop::recompute_slice_PfromX(const Index4D &x, MType type) {
+    recompute_slice_PXdecomp(x, lmro_case(type), PfromX_CL_by_mtype(type), WP,
+                             PfromX_by_mtype(type),PfromX_by_mtype(type));
+}
 ///////////////// Traceback ////////////////////////////////
 
-// void pseudo_loop::backtrack(){
-//    Trace_W(1,n,W[n]);
-//    return;
-// }
+void pseudo_loop::backtrack(){
+   Trace_W(1,n,W[n]);
+   return;
+}
 
 // void pseudo_loop::Trace_PXmloop(const Index4D &x, MType type, energy_t e){
 // 	if (debug) std::cout << "PXmloop at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
@@ -380,42 +399,42 @@ void pseudo_loop::compute_PX(const Index4D &x, MType type){
 //     }
 //     UNREACHABLE();
 // }
-// void pseudo_loop::Trace_PX(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l, MType type, energy_t e){
-// 	if (debug) std::cout << "PX at " << i << " and " << j << " and " << k << " and " << l << " with type: " << type << " and en: " << e << std::endl;
-// 	const Index4D x(i,j,k,l);
-// 	const int ptype_closing = pair[S_[x.lend(type)]][S_[x.rend(type)]];
-// 	fres[x.lend(type)] = x.rend(type);
-// 	fres[x.rend(type)] = x.lend(type);
+void pseudo_loop::Trace_PX(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l, MType type, energy_t e){
+	if (debug) std::cout << "PX at " << i << " and " << j << " and " << k << " and " << l << " with type: " << type << " and en: " << e << std::endl;
+	const Index4D x(i,j,k,l);
+	const int ptype_closing = pair[S_[x.lend(type)]][S_[x.rend(type)]];
+	fres[x.lend(type)] = x.rend(type);
+	fres[x.rend(type)] = x.lend(type);
 
-// 	if (ptype_closing>0){
-// 		energy_t tmp = calc_PXmloop(x,type);
-// 		if(e==tmp){
-// 			Trace_PXmloop(x,type,tmp);
-// 			return;
-// 		}
-// 		if (x.difference(type)>TURN){
-// 			if(type == MType::O){
-// 				if(x.i()==x.j() && x.k()==x.l()){
-// 					if(e==gamma2(x.l(),x.i())) return;
-// 				}
-// 			}
-// 			Index4D xp(x);
-// 			xp.shrink(type);
-// 			MatrixSlices3D &PfromX = PfromX_by_mtype(type);
-// 			tmp = PfromX.get(xp) + penalty(xp, gamma2, type);
-// 			if(e==tmp){
-// 				Trace_PfromX(xp,type,PfromX.get(xp));
-// 				return;
-// 			}
-// 		}
-// 		tmp = calc_PXiloop(x, type);
-// 		if(e==tmp){
-// 			Trace_PXiloop(x,type,tmp);
-// 			return;
-// 		}
-// 	}
-// 	UNREACHABLE();
-// }
+	if (ptype_closing>0){
+		energy_t tmp = calc_PXmloop(x,type);
+		if(e==tmp){
+			Trace_PXmloop(x,type,tmp);
+			return;
+		}
+		if (x.difference(type)>TURN){
+			if(type == MType::O){
+				if(x.i()==x.j() && x.k()==x.l()){
+					if(e==gamma2(x.l(),x.i())) return;
+				}
+			}
+			Index4D xp(x);
+			xp.shrink(type);
+			MatrixSlices3D &PfromX = PfromX_by_mtype(type);
+			tmp = PfromX.get(xp) + penalty(xp, gamma2, type);
+			if(e==tmp){
+				Trace_PfromX(xp,type,PfromX.get(xp));
+				return;
+			}
+		}
+		tmp = calc_PXiloop(x, type);
+		if(e==tmp){
+			Trace_PXiloop(x,type,tmp);
+			return;
+		}
+	}
+	UNREACHABLE();
+}
 
 energy_t pseudo_loop::generic_decomposition(int i, int j, int k, int l, int decomp_cases, candidate_lists &CL, const TriangleMatrix &w, const MatrixSlices3D &PX, int LMRO_ndcases, energy_t penfun) {
     auto x = Index4D(i,j,k,l);
