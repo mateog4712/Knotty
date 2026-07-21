@@ -40,7 +40,6 @@ public:
 	char get_type (cand_pos_t i, cand_pos_t j) { cand_pos_t ij = index[i]+j-i; return V[ij].type;}
     energy_t get_energy (cand_pos_t i, cand_pos_t j) { if (i>=j) return INF; cand_pos_t ij = index[i]+j-i; return V[ij].energy; }
 
-	TriangleMatrix P;					// the main loop for pseudoloops and bands
 	std::string structure;
 private:
 
@@ -69,6 +68,7 @@ private:
 	TriangleMatrix WPP;	// similar to WP but has at least one base pair
 	TriangleMatrix WBP;	// similar to WB but has at least one base pair
 	
+	TriangleMatrix P;					// the main loop for pseudoloops and bands
 	MatrixSlices3D PK;				// MFE of a TGB structure over gapped region [i,j] U [k,l]
 
 	MatrixSlices3D PL;		// MFE of a TGB structure s.t. i.j is paired
@@ -116,72 +116,70 @@ private:
 	void compute_PfromX(const Index4D &x, MType type);
 	void compute_PXmloop0(const Index4D &x, MType type);
 	void compute_PXmloop1(const Index4D &x, MType type);
+	//Get rid of these later
+	template<MType type> int calc_PX_checked(const Index4D &x){
+		assert(x.difference(type) > TURN);
+
+		return PX_by_mtype(type).get(x);
+	}
+
+	template <MType type> int calc_PX(const Index4D &x){
+		const int ptype_closing = pair[S_[x.lend(type)]][S_[x.rend(type)]];
+		if (!(ptype_closing>0)) {
+			return INF;
+		}
+		return calc_PX_checked<type>(x);
+	}
 
 	energy_t calc_PLiloop(const Index4D &x, MType type);
 	energy_t calc_PRiloop(const Index4D &x, MType type);
 	energy_t calc_PMiloop(const Index4D &x, MType type);
 	energy_t calc_POiloop(const Index4D &x, MType type);
 
-	void compute_PLmloop0(const Index4D &x, MType type);
-	void compute_PMmloop0(const Index4D &x, MType type);
-	void compute_PRmloop0(const Index4D &x, MType type);
-	void compute_POmloop0(const Index4D &x, MType type);
-	void compute_PLmloop1(const Index4D &x, MType type);
-	void compute_PMmloop1(const Index4D &x, MType type);
-	void compute_PRmloop1(const Index4D &x, MType type);
-	void compute_POmloop1(const Index4D &x, MType type);
-
-	void compute_PfromL(const Index4D &x, MType type);
-	void compute_PfromM(const Index4D &x,MType type);
-	void compute_PfromR(const Index4D &x,MType type);
-	void compute_PfromO(const Index4D &x,MType type);
-
 	energy_t calc_WB(cand_pos_t i, cand_pos_t l);
 	energy_t calc_WP(cand_pos_t i, cand_pos_t l);
 
 
 	// Traceback //
-	void backtrack();
-	void Trace_W(cand_pos_t i, cand_pos_t j, energy_t e);
-	void Trace_P(cand_pos_t i, cand_pos_t l, energy_t e);
-	void Trace_V(cand_pos_t i, cand_pos_t j, energy_t e);
-	void Trace_WM(cand_pos_t i, cand_pos_t j, energy_t e);
-	void Trace_WMv(cand_pos_t i, cand_pos_t j, energy_t e);
-	void Trace_WMp(cand_pos_t i, cand_pos_t j, energy_t e);
+	// void backtrack();
+	// void Trace_W(cand_pos_t i, cand_pos_t j, energy_t e);
+	// void Trace_P(cand_pos_t i, cand_pos_t l, energy_t e);
+	// void Trace_V(cand_pos_t i, cand_pos_t j, energy_t e);
+	// void Trace_WM(cand_pos_t i, cand_pos_t j, energy_t e);
+	// void Trace_WMv(cand_pos_t i, cand_pos_t j, energy_t e);
+	// void Trace_WMp(cand_pos_t i, cand_pos_t j, energy_t e);
 
-	void Trace_WB(cand_pos_t i, cand_pos_t l, energy_t e);
-	void Trace_WBP(cand_pos_t i, cand_pos_t l, energy_t e);
-	void Trace_WP(cand_pos_t i, cand_pos_t l, energy_t e);
-	void Trace_WPP(cand_pos_t i, cand_pos_t l, energy_t e);
+	// void Trace_WB(cand_pos_t i, cand_pos_t l, energy_t e);
+	// void Trace_WBP(cand_pos_t i, cand_pos_t l, energy_t e);
+	// void Trace_WP(cand_pos_t i, cand_pos_t l, energy_t e);
+	// void Trace_WPP(cand_pos_t i, cand_pos_t l, energy_t e);
 
-	void Trace_PX(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l, MType type, energy_t e);
-	void Trace_PXiloop(const Index4D &x, MType type, energy_t e);
-	void Trace_PXmloop(const Index4D &x, MType type, energy_t e);
-	void Trace_PXmloop0(const Index4D &x, MType type, energy_t e);
-	void Trace_PXmloop1(const Index4D &x, MType type, energy_t e);
-	void Trace_PfromX(const Index4D &x, MType type, energy_t e);
-	void Trace_PfromXprime(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l, MType type, energy_t e);
-	void Trace_PfromXdoubleprime(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l, MType type, energy_t e);
+	// void Trace_PX(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l, MType type, energy_t e);
+	// void Trace_PXiloop(const Index4D &x, MType type, energy_t e);
+	// void Trace_PXmloop(const Index4D &x, MType type, energy_t e);
+	// void Trace_PXmloop0(const Index4D &x, MType type, energy_t e);
+	// void Trace_PXmloop1(const Index4D &x, MType type, energy_t e);
+	// void Trace_PfromX(const Index4D &x, MType type, energy_t e);
 
-	void Trace_PLiloop(const Index4D &x, MType type, energy_t e);
-	void Trace_PMiloop(const Index4D &x, MType type, energy_t e);
-	void Trace_PRiloop(const Index4D &x, MType type, energy_t e);
-	void Trace_POiloop(const Index4D &x, MType type, energy_t e);
+	// void Trace_PLiloop(const Index4D &x, MType type, energy_t e);
+	// void Trace_PMiloop(const Index4D &x, MType type, energy_t e);
+	// void Trace_PRiloop(const Index4D &x, MType type, energy_t e);
+	// void Trace_POiloop(const Index4D &x, MType type, energy_t e);
 
-	void Trace_PLmloop0(const Index4D &x, MType type, energy_t e);
-	void Trace_PMmloop0(const Index4D &x, MType type, energy_t e);
-	void Trace_PRmloop0(const Index4D &x, MType type, energy_t e);
-	void Trace_POmloop0(const Index4D &x, MType type, energy_t e);
+	// void Trace_PLmloop0(const Index4D &x, MType type, energy_t e);
+	// void Trace_PMmloop0(const Index4D &x, MType type, energy_t e);
+	// void Trace_PRmloop0(const Index4D &x, MType type, energy_t e);
+	// void Trace_POmloop0(const Index4D &x, MType type, energy_t e);
 
-	void Trace_PLmloop1(const Index4D &x, MType type, energy_t e);
-	void Trace_PMmloop1(const Index4D &x, MType type, energy_t e);
-	void Trace_PRmloop1(const Index4D &x, MType type, energy_t e);
-	void Trace_POmloop1(const Index4D &x, MType type, energy_t e);
+	// void Trace_PLmloop1(const Index4D &x, MType type, energy_t e);
+	// void Trace_PMmloop1(const Index4D &x, MType type, energy_t e);
+	// void Trace_PRmloop1(const Index4D &x, MType type, energy_t e);
+	// void Trace_POmloop1(const Index4D &x, MType type, energy_t e);
 
-	void Trace_PfromL(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,MType type, energy_t e);
-	void Trace_PfromM(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,MType type, energy_t e);
-	void Trace_PfromR(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,MType type, energy_t e);
-	void Trace_PfromO(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,MType type, energy_t e);
+	// void Trace_PfromL(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,MType type, energy_t e);
+	// void Trace_PfromM(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,MType type, energy_t e);
+	// void Trace_PfromR(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,MType type, energy_t e);
+	// void Trace_PfromO(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,MType type, energy_t e);
 
 	void compute_energy (cand_pos_t i, cand_pos_t j);
 	energy_t HairpinE(const std::string& seq, cand_pos_t i, cand_pos_t j);

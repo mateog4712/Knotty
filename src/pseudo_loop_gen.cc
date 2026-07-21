@@ -134,6 +134,61 @@ void pseudo_loop::compute_energy (cand_pos_t i, cand_pos_t j)
     }
 }
 
+void pseudo_loop::compute_PK(const Index4D &x){
+	if (impossible_case(x)) return;
+	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
+	energy_t min_energy = INF;
+    int best_branch = 0;
+
+	for(cand_pos_t d=i+1; d < j; d++){
+        energy_t tmp = PK.get(i,d,k,l) + WP.get(d+1,j);  // 12G1
+
+        if (tmp < min_energy){
+            min_energy=tmp;
+            best_branch = 1;
+        }
+    }
+	for(cand_pos_t d=k+1; d < l; d++){
+        energy_t tmp = PK.get(i,j,d,l) + WP.get(k,d-1);  //1G21
+        if (tmp < min_energy){
+            min_energy=tmp;
+            best_branch = 2;
+        }
+    }
+
+	energy_t tmp = calc_PX<MType::L>(x) + gamma2(j,i)+PB_penalty;
+    if(tmp < min_energy){
+        min_energy = tmp;
+        best_branch = 3;
+    }
+
+    tmp = calc_PX<MType::M>(x) + gamma2(j,k)+PB_penalty;
+    if(tmp < min_energy){
+        min_energy = tmp;
+        best_branch = 4;
+    }
+
+    tmp = calc_PX<MType::R>(x) + gamma2(l,k)+PB_penalty;
+    if(tmp < min_energy){
+        min_energy = tmp;
+        best_branch = 5;
+    }
+
+    tmp = calc_PX<MType::O>(x) + gamma2(l,i)+PB_penalty;
+    if(tmp < min_energy){
+        min_energy = tmp;
+        best_branch = 6;
+    }
+	PK.setI(x, min_energy);
+
+	if (min_energy < INF/2){
+        // adding candidates
+        if (best_branch > 1) {
+            PK_CL.push_candidate(x, min_energy);
+        }
+    }
+}
+
 /**
  * These should probably just be in a matrix at this point; there are so many arrays, why have four less and recompute every time;
  * It would mean not having four more though, but 11. The space might be more important
@@ -214,172 +269,6 @@ energy_t pseudo_loop::calc_POiloop(const Index4D &x, MType type){
 	}
 	return min_energy;
 }
-/**
- * 
- * 
- * 
- */
-// void pseudo_loop::compute_PfromL(const Index4D &x, MType type){
-// 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
-
-// 	energy_t min_energy = generic_decomposition(i, j, k, l, CASE_M, PfromM_CL, WP, PfromM, lmro_cases_in_fromX_by_mtype(type), penalty(x,gamma2,type) + PB_penalty);
-
-// 	MatrixSlices3D &PfromX = PfromX_by_mtype(type);
-// 	PfromX.set(i,j,k,l,min_energy);
-// 	if (min_energy < INF/2){
-//         if (!decomposing_branch_ && i < j) {
-//             PfromL_CL->push_candidate(x, min_energy);
-//         }
-//     }
-// }
-
-// void pseudo_loop::compute_PfromM(const Index4D &x, MType type){
-// 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
-
-// 	energy_t min_energy = generic_decomposition(i, j, k, l, CASE_M, PfromM_CL, WP, PfromM, lmro_cases_in_fromX_by_mtype(type), penalty(x,gamma2,type) + PB_penalty);
-
-// 	MatrixSlices3D &PfromX = PfromX_by_mtype(type);
-// 	PfromX.set(i,j,k,l,min_energy);
-// 	if (min_energy < INF/2){
-//         if (!decomposing_branch_ && i < j) {
-//             PfromM_CL->push_candidate(x, min_energy);
-//         }
-//     }
-// }
-
-// void pseudo_loop::compute_PfromR(const Index4D &x, MType type){
-// 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
-
-// 	energy_t min_energy = generic_decomposition(i, j, k, l, CASE_R, PfromR_CL, WP, PfromR, lmro_cases_in_fromX_by_mtype(type), penalty(x,gamma2,type) + PB_penalty);
-
-// 	MatrixSlices3D &PfromX = PfromX_by_mtype(type);
-// 	PfromX.set(i,j,k,l,min_energy);
-// 	if (min_energy < INF/2){
-//         if (!decomposing_branch_ && i < j) {
-//             PfromR_CL->push_candidate(x, min_energy);
-//         }
-//     }
-// }
-
-// void pseudo_loop::compute_PfromO(const Index4D &x, MType type){
-// 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
-
-// 	energy_t min_energy = generic_decomposition(i, j, k, l, CASE_O, PfromO_CL, WP, PfromO, lmro_cases_in_fromX_by_mtype(type), penalty(x,gamma2,type) + PB_penalty);
-
-// 	MatrixSlices3D &PfromX = PfromX_by_mtype(type);
-// 	PfromX.set(i,j,k,l,min_energy);
-// 	if (min_energy < INF/2){
-//         if (!decomposing_branch_ && i < j) {
-//             PfromO_CL->push_candidate(x, min_energy);
-//         }
-//     }
-// }
-/**
- * 
- * 
- * 
- */
-// void pseudo_loop::compute_PLmloop1(const Index4D &x, MType type){
-// 	if (impossible_case(x)) return;
-// 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
-
-// 	energy_t min_energy = generic_decomposition(i, j, k, l, CASE_L, PLmloop0_CL, WBP, PLmloop0);
-
-// 	MatrixSlices3D &PXmloop1 = PXmloop1_by_mtype(type);
-// 	PXmloop1.set(i,j,k,l,min_energy);
-// }
-// void pseudo_loop::compute_PMmloop1(const Index4D &x, MType type){
-// 	if (impossible_case(x)) return;
-// 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
-
-// 	energy_t min_energy = generic_decomposition(i, j, k, l, CASE_M, PMmloop0_CL, WBP, PMmloop0);
-
-// 	MatrixSlices3D &PXmloop1 = PXmloop1_by_mtype(type);
-// 	PXmloop1.set(i,j,k,l,min_energy);
-// }
-// void pseudo_loop::compute_PRmloop1(const Index4D &x, MType type){
-// 	if (impossible_case(x)) return;
-// 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
-
-// 	int min_energy = generic_decomposition(i, j, k, l, CASE_R, PRmloop0_CL, WBP, PRmloop0);
-
-// 	MatrixSlices3D &PXmloop1 = PXmloop1_by_mtype(type);
-// 	PXmloop1.set(i,j,k,l,min_energy);
-// }
-// void pseudo_loop::compute_POmloop1(const Index4D &x, MType type){
-// 	if (impossible_case(x)) return;
-// 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
-
-// 	energy_t min_energy = generic_decomposition(i, j, k, l, CASE_O, POmloop0_CL, WBP, POmloop0);
-
-// 	MatrixSlices3D &PXmloop1 = PXmloop1_by_mtype(type);
-// 	PXmloop1.set(i,j,k,l,min_energy);
-// }
- /**
-  * 
-  * 
-  * 
-  */
-// void pseudo_loop::compute_PLmloop0(const Index4D &x, MType type){
-// 	if (impossible_case(x)) return;
-// 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
-
-// 	energy_t min_energy = generic_decomposition(i, j, k, l, CASE_L, PLmloop0_CL, WB, PLmloop0, CASE_PL, bp_penalty);
-	
-// 	MatrixSlices3D &PXmloop0 = PXmloop0_by_mtype(type);
-// 	PXmloop0.set(i,j,k,l,min_energy);
-
-// 	if (min_energy < INF/2){
-//         if ( !decomposing_branch_ ){
-//             PLmloop0_CL->push_candidate(x, min_energy);
-//         }
-//     }
-// }
-// void pseudo_loop::compute_PMmloop0(const Index4D &x, MType type){
-// 	if (impossible_case(x)) return;
-// 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
-
-// 	energy_t min_energy = generic_decomposition(i, j, k, l, CASE_M, PMmloop0_CL, WB, PMmloop0, CASE_PM, bp_penalty);
-
-// 	MatrixSlices3D &PXmloop0 = PXmloop0_by_mtype(type);
-// 	PXmloop0.set(i,j,k,l,min_energy);
-
-// 	if (min_energy < INF/2){
-//         if (!decomposing_branch_) {
-//             PMmloop0_CL->push_candidate(x, min_energy);
-//         }
-//     }
-// }
-// void pseudo_loop::compute_PRmloop0(const Index4D &x, MType type){
-// 	if (impossible_case(x)) return;
-// 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
-
-// 	energy_t min_energy = generic_decomposition(i, j, k, l, CASE_R, PRmloop0_CL, WB, PRmloop0, CASE_PR, bp_penalty);
-
-// 	MatrixSlices3D &PXmloop0 = PXmloop0_by_mtype(type);
-// 	PXmloop0.set(i,j,k,l,min_energy);
-
-// 	if (min_energy < INF/2){
-//         if (!decomposing_branch_) {
-//             PRmloop0_CL->push_candidate(x, min_energy);
-//         }
-//     }
-// }
-// void pseudo_loop::compute_POmloop0(const Index4D &x, MType type){
-// 	if (impossible_case(x)) return;
-// 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
-
-// 	energy_t min_energy = generic_decomposition(i, j, k, l, CASE_O, POmloop0_CL, WB, POmloop0, CASE_PO, bp_penalty);
-
-// 	MatrixSlices3D &PXmloop0 = PXmloop0_by_mtype(type);
-// 	PXmloop0.set(i,j,k,l,min_energy);
-
-// 	if (min_energy < INF/2){
-//         if ( !decomposing_branch_ ){
-//             POmloop0_CL->push_candidate(x, min_energy);
-//         }
-//     }
-// }
 
 void pseudo_loop::compute_WB(cand_pos_t i, cand_pos_t l){
     assert(!impossible_case(i,l));

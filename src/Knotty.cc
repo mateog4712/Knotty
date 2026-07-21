@@ -186,12 +186,6 @@ int main (int argc, char *argv[])
 
     std::string fileO = args_info.output_file_given ? args_info.output_file_arg : "";
 
-    int num_samples = args_info.samples_arg;
-
-    int num_fatgraph = args_info.fatgraph_arg;
-
-    bool PSplot = !args_info.noPS_given;
-
     noGU = args_info.noGU_given;
 
 	std::vector<RNAEntry> Inputs = get_all_inputs(fileI,seq);
@@ -219,9 +213,8 @@ int main (int argc, char *argv[])
                 }
             }
         }
-        pf_t energy,pf_energy,MEA,distance,frequency,diversity;
-        std::string structure,pf_structure,MEA_structure,centroid_structure;
-        std::vector<std::pair<std::string,double>> fatgraphs(num_fatgraph);
+        double energy;
+        std::string structure;
         structure = ccj(current.sequence,energy,args_info.dangles_arg);
         print_results(fileO,current.name,current.sequence,structure,energy);
     }

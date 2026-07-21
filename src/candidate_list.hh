@@ -105,14 +105,8 @@ public:
         cls_.resize(n);
     }
 
-    const MType type() const { return type_; }
-    const int n() const { return n_; }
-
-    /**
-     *  @brief prints the current candidate list's type (PLmloop_CL, etc.)
-     *  used for debugging
-     */
-    void print_type() const;
+    MType type() const { return type_; }
+    int n() const { return n_; }
 
     /**
      * @returns the candidate list at j,k,l
@@ -147,11 +141,11 @@ public:
     /**
     *  @returns whether there is a candidate at location (i,j,k,l)
     */
-    const bool is_candidate(int i, int j, int k, int l) const {
+    bool is_candidate(int i, int j, int k, int l) const {
         return (find_candidate(i,j,k,l) < INF/2);
     }
 
-    const bool is_candidate(const Index4D &x) const {
+    bool is_candidate(const Index4D &x) const {
         return is_candidate(x.i(),x.j(),x.k(),x.l());
     }
 

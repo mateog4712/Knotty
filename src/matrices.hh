@@ -245,7 +245,7 @@ public:
     }
 
     static size_t index3D(cand_pos_t j, cand_pos_t k, cand_pos_t l, const index_offset_t3 &offset) {
-        return (offset)[j][k] + l;
+        return (offset)[j-1][k-1] + (l-1);
     }
 
     static void construct_index(index_offset_t3 &offset, cand_pos_t n) {
@@ -277,7 +277,6 @@ public:
     //         }
     //     }
     // }
-
 private:
     cand_pos_t n_;
     cand_pos_t nb_slices_;
@@ -289,16 +288,14 @@ private:
 
     std::vector<energy_t> m_;
 
-    size_t
-    index(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l) const {
-        size_t idx = (*offset_)[j][k] + l;
+    size_t index(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l) const { // Is it still -1 here?
+        size_t idx = (*offset_)[(j-1)][(k-1)] + (l-1);
         if (nb_slices_>1) {
-            i = i%nb_slices_;
-            idx += i * slice_size_;
+            cand_pos_t d = (i-1)%nb_slices_;
+            idx += d * slice_size_;
         }
         return idx;
     }
-
 };
 
 #endif

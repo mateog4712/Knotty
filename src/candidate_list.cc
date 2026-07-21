@@ -52,8 +52,8 @@ void candidate_lists::print_CL_size() const {
     get_CL_size(candidates, capacity);
 
     printf("\n");
-    print_type();
-    printf("\n");
+    // print_type();
+    // printf("\n");
 
 
     int num_lists=0;

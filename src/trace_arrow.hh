@@ -416,11 +416,11 @@ private:
 };
 
 
-inline
-std::ostream &
-operator << (std::ostream &out, const TraceArrow &a) {
-    return
-        out << "( TraceArrow )";
-}
+// inline
+// std::ostream &
+// operator << (std::ostream &out, const TraceArrow &a) {
+//     return
+//         out << "( TraceArrow )";
+// }
 
 #endif // TRACE_ARROW_HH
