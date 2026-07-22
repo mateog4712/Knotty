@@ -119,19 +119,13 @@ private:
 	void compute_PfromX(const Index4D &x, MType type);
 	void compute_PXmloop0(const Index4D &x, MType type);
 	void compute_PXmloop1(const Index4D &x, MType type);
-	//Get rid of these later
-	template<MType type> int calc_PX_checked(const Index4D &x){
-		assert(x.difference(type) > TURN);
-
-		return PX_by_mtype(type).get(x);
-	}
 
 	template <MType type> int calc_PX(const Index4D &x){
 		const int ptype_closing = pair[S_[x.lend(type)]][S_[x.rend(type)]];
-		if (!(ptype_closing>0)) {
+		if (!(ptype_closing>0) || !(x.difference(type) > TURN)) {
 			return INF;
 		}
-		return calc_PX_checked<type>(x);
+		return PX_by_mtype(type).get(x);
 	}
 
 	energy_t calc_PLiloop(const Index4D &x, MType type);
@@ -172,10 +166,6 @@ private:
 	void Trace_PXmloop1(const Index4D &x, MType type, energy_t e);
 	void Trace_PfromX(const Index4D &x, MType type, energy_t e);
 
-	// void Trace_PLiloop(const Index4D &x, MType type, energy_t e);
-	// void Trace_PMiloop(const Index4D &x, MType type, energy_t e);
-	// void Trace_PRiloop(const Index4D &x, MType type, energy_t e);
-	// void Trace_POiloop(const Index4D &x, MType type, energy_t e);
 	energy_t Liloop_energy(const Index4D &x, cand_pos_t d, cand_pos_t dp);
 	energy_t Miloop_energy(const Index4D &x, cand_pos_t d, cand_pos_t dp);
 	energy_t Riloop_energy(const Index4D &x, cand_pos_t d, cand_pos_t dp);
@@ -207,14 +197,14 @@ private:
 
     //! precompute e_intP
     void init_eIntP(cand_pos_t n) {
-        eIntP_.resize( n*(n+1)/2 );
-        for (int i=0; i<n; i++) {
-            for (int j=i+1; j<n; j++) {
-                int ij = index[i]+j-i;
+        eIntP_.resize((n+1)*(n+2)/2);
+        for (cand_pos_t i=1; i<=n; i++) {
+            for (cand_pos_t j=i+1; j<=n; j++) {
+                cand_pos_t ij = index[i]+j-i;
                 eIntP_[ij].resize(MAXLOOP*MAXLOOP);
-                for (int x = 0; x < MAXLOOP; x++) {
-                    for (int xp = 0; xp < MAXLOOP && i+x+1+TURN < j-xp-1 ; xp++) {
-                        int xxp = x*MAXLOOP+xp;
+                for (cand_pos_t x = 0; x < MAXLOOP; x++) {
+                    for (cand_pos_t xp = 0; xp < MAXLOOP && i+x+1+TURN < j-xp-1 ; xp++) {
+                        cand_pos_t xxp = x*MAXLOOP+xp;
                         eIntP_[ij][xxp] = get_e_intP(i,i+x+1,j-xp-1,j);
                     }
                 }

@@ -20,9 +20,9 @@ pseudo_loop::pseudo_loop(std::string seq, int dangle) : seq(seq), params_(vrna_p
 
 void pseudo_loop::allocate_space()
 {
-	init_eIntP(n+1);
 	TriangleMatrix::new_index(index,n+1);
 	MatrixSlices3D::construct_index(index3D,n);
+	init_eIntP(n);
 
 	ta = new MasterTraceArrows(n, index);
 
@@ -114,7 +114,7 @@ double pseudo_loop::ccj (){
     double energy = W[n]/100.0;
 
 	// backtrack
-	// backtrack();
+	backtrack();
 
 	fill_structure(fres,structure);
 	this->structure = structure.substr(1,n);
@@ -242,8 +242,8 @@ energy_t pseudo_loop::calc_PXmloop(const Index4D &x, MType type){
 
 	Index4D xp(x);
 	xp.shrink(type);
-	MatrixSlices3D &PXmloop00 = PXmloop1_by_mtype(type);
-	return PXmloop00.get(xp.i(),xp.j(),xp.k(),xp.l())+ ap_penalty + bp_penalty;
+	MatrixSlices3D &PXmloop1 = PXmloop1_by_mtype(type);
+	return PXmloop1.get(xp.i(),xp.j(),xp.k(),xp.l())+ ap_penalty + bp_penalty;
 }
 
 energy_t pseudo_loop::calc_PXiloop(const Index4D &x, MType type){

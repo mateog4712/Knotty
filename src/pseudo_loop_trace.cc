@@ -383,11 +383,13 @@ void pseudo_loop::Trace_PK(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,
     // min_energy = INF;
 
     for (auto type : {MType::L, MType::M, MType::R, MType::O} ) {
-        int px_e = recompute_PX(x, type);
-        int pen = penalty(x, gamma2, type) + PB_penalty;
-        if (px_e + pen == e) {
+        energy_t px_e = recompute_PX(x, type);
+        energy_t pen = penalty(x, gamma2, type) + PB_penalty;
+		std::cout << px_e << "\t" << pen << "\t" << px_e+pen << "\t" << e << std::endl;
+        if ((px_e + pen) == e) {
             // best_tgt_type = pid_by_mtype(type); // This could be used to avoid recomputing while in PX
-            Trace_PX(i,j,k,l,type,px_e + pen);
+			std::cout << "I'm here" << std::endl;
+            Trace_PX(i,j,k,l,type, px_e);
             return;
         }
     }
