@@ -286,15 +286,15 @@ void pseudo_loop::Trace_WBP(cand_pos_t i, cand_pos_t l, energy_t e){
 		return;
 	}
 	for(cand_pos_t d=i; d< l; ++d){
-		tmp = calc_WB(i,d-1) + get_energy(d,l) + bp_penalty + PPS_penalty;
+		tmp = WB.get(i,d-1) + get_energy(d,l) + bp_penalty + PPS_penalty;
 		if(e==tmp){
-			Trace_WB(i,d-1,calc_WB(i,d-1));
+			Trace_WB(i,d-1,WB.get(i,d-1));
 			Trace_V(d,l,get_energy(d,l));
 			return;
 		}
-		tmp = calc_WB(i,d-1) + P.get(d,l) + PSM_penalty + PPS_penalty;
+		tmp = WB.get(i,d-1) + P.get(d,l) + PSM_penalty + PPS_penalty;
 		if(e==tmp){
-			Trace_WB(i,d-1,calc_WB(i,d-1));
+			Trace_WB(i,d-1,WB.get(i,d-1));
 			Trace_P(d,l,P.get(d,l));
 			return;
 		}
@@ -322,15 +322,15 @@ void pseudo_loop::Trace_WPP(cand_pos_t i, cand_pos_t l, energy_t e){
 		return;
 	}
 	for(cand_pos_t d=i; d<l; ++d){
-		tmp = calc_WP(i,d-1) + get_energy(d,l) + gamma2(l,d) + PPS_penalty;
+		tmp = WP.get(i,d-1) + get_energy(d,l) + gamma2(l,d) + PPS_penalty;
 		if(e==tmp){
-			Trace_WP(i,d-1,calc_WP(i,d-1));
+			Trace_WP(i,d-1,WP.get(i,d-1));
 			Trace_V(d,l,get_energy(d,l));
 			return;
 		}
-		tmp = calc_WP(i,d-1) + P.get(d,l) + PSP_penalty + PPS_penalty;
+		tmp = WP.get(i,d-1) + P.get(d,l) + PSP_penalty + PPS_penalty;
 		if(e==tmp){
-			Trace_WP(i,d-1,calc_WP(i,d-1));
+			Trace_WP(i,d-1,WP.get(i,d-1));
 			Trace_P(d,l,P.get(d,l));
 			return;
 		}
@@ -340,7 +340,6 @@ void pseudo_loop::Trace_WPP(cand_pos_t i, cand_pos_t l, energy_t e){
 
 void pseudo_loop::Trace_P(cand_pos_t i, cand_pos_t l, energy_t e){
 	if (debug) printf("P at %d and %d with %d\n", i, l, e);
-	energy_t tmp = INF;
     recompute_slice_PK(Index4D(i,l,i,l));
 
 	for (const candidate_PK c : PK_CL[l]) {
@@ -360,11 +359,9 @@ void pseudo_loop::Trace_P(cand_pos_t i, cand_pos_t l, energy_t e){
 	UNREACHABLE();
 }
 void pseudo_loop::Trace_PK(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l, energy_t e){
-    int best_d = -1, best_branch=-1;
+    if (debug) printf("PK at %d and %d and %d and %d with %d\n", i,j,k,l,e);
     Index4D x = Index4D(i,j,k,l);
     recompute_slice_PK(x);
-
-    energy_t min_energy = INF;
 
     for(int d=i+1; d < j; d++){
         if (PK.get(i,d,k,l) + WP.get(d+1,j) == e){  // 12G1
@@ -374,7 +371,6 @@ void pseudo_loop::Trace_PK(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,
         }
     }
     for(int d=k+1; d < l; d++){
-        int temp = PK.get(i,j,d,l) + WP.get(k,d-1);
         if (PK.get(i,j,d,l) + WP.get(k,d-1) == e){ // 1G21
             Trace_PK(i,j,d,l,PK.get(i,j,d,l));
             Trace_WP(k,d-1,WP.get(k,d-1));
@@ -382,130 +378,130 @@ void pseudo_loop::Trace_PK(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,
         }
     }
     // continue trace with one of the recursion cases to PL,PM,PR,PO
-    int best_tgt_energy = INF;
-    char best_tgt_type = '\0';
-    min_energy = INF;
+    // int best_tgt_energy = INF;
+    // char best_tgt_type = '\0';
+    // min_energy = INF;
 
     for (auto type : {MType::L, MType::M, MType::R, MType::O} ) {
         int px_e = recompute_PX(x, type);
         int pen = penalty(x, gamma2, type) + PB_penalty;
         if (px_e + pen == e) {
+            // best_tgt_type = pid_by_mtype(type); // This could be used to avoid recomputing while in PX
             Trace_PX(i,j,k,l,type,px_e + pen);
             return;
-            // best_tgt_type = pid_by_mtype(type);
         }
     }
     UNREACHABLE();
 }
 
-void pseudo_loop::Trace_PLiloop(const Index4D &x, MType type, energy_t e){
-	if (debug) std::cout << "PLiloop at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
-	assert(!impossible_case(x));
-	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
-	MatrixSlices3D &PX = PX_by_mtype(type);
-	energy_t tmp = INF;
-	if (i+TURN+2<j) { 
-		tmp = PX.get(i+1,j-1,k,l) + get_e_stP(i,j);
-		if(e==tmp){
-			Trace_PX(i+1,j-1,k,l,type,PX.get(i+1,j-1,k,l));
-			return;
-		}
-	}
-	cand_pos_t max_d = std::min(j,i+MAXLOOP);
-	for(cand_pos_t d= i+1; d<max_d; ++d){
-		cand_pos_t min_dp = std::max(d+TURN,j-MAXLOOP);
-		for(cand_pos_t dp = j-1; dp > min_dp; --dp){
-			if (!(pair[S_[d]][S_[dp]]>0)) continue;
-			tmp = get_intP(i,d,dp,j) + PX.get(d,dp,k,l);
-			if(e==tmp){
-				Trace_PX(d,dp,k,l,type,PX.get(d,dp,k,l));
-				return;
-			}
-		}
-	}
-	UNREACHABLE();
-}
-void pseudo_loop::Trace_PMiloop(const Index4D &x, MType type, energy_t e){
-	if (debug) std::cout << "PMiloop at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
-	assert(!impossible_case(x));
-	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
-	MatrixSlices3D &PX = PX_by_mtype(type);
-	energy_t tmp = INF;
-	if (i<j && k<l) {
-		tmp = PX.get(i,j-1,k+1,l) + get_e_stP(j-1,k+1);
-		if(e==tmp){
-			Trace_PX(i,j-1,k+1,l,type,PX.get(i,j-1,k+1,l));
-			return;
-		}
-	}
-	cand_pos_t max_d = std::max(i,j-MAXLOOP);
-	for(cand_pos_t d= j-1; d>max_d; --d){
-		cand_pos_t min_dp = std::min(l,k+MAXLOOP); // could switch these here so that we are increasing in the first for like all the others
-		for (cand_pos_t dp=k+1; dp <min_dp; ++dp) {
-			if (!(pair[S_[d]][S_[dp]]>0)) continue;
-			tmp = get_intP(d,j,k,dp) + PX.get(i,d,dp,l);
-			if(e==tmp){
-				Trace_PX(i,d,dp,l,type,PX.get(i,d,dp,l));
-				return;
-			}
-		}
-	}
-	UNREACHABLE();
-}
-void pseudo_loop::Trace_PRiloop(const Index4D &x, MType type, energy_t e){
-	if (debug) std::cout << "PRiloop at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
-	assert(!impossible_case(x));
-	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
-	MatrixSlices3D &PX = PX_by_mtype(type);
-	energy_t tmp = INF;
-	if (k+TURN+2<l) { 
-		tmp = PX.get(i,j,k+1,l-1) + get_e_stP(k,l);
-		if(e==tmp){
-			Trace_PX(i,j,k+1,l-1,type,PX.get(i,j,k+1,l-1));
-			return;
-		}
-	}
-	cand_pos_t max_d = std::min(l,k+MAXLOOP);
-	for(cand_pos_t d= k+1; d<max_d; ++d){
-		cand_pos_t min_dp = std::max(d+TURN,l-MAXLOOP);
-		for(cand_pos_t dp=l-1; dp > min_dp; --dp){
-			if (!(pair[S_[d]][S_[dp]]>0)) continue;
-			tmp = get_intP(k,d,dp,l) + PX.get(i,j,d,dp);
-			if(e==tmp){
-				Trace_PX(i,j,d,dp,type,PX.get(i,j,d,dp));
-				return;
-			}
-		}
-	}
-	UNREACHABLE();
-}
-void pseudo_loop::Trace_POiloop(const Index4D &x, MType type, energy_t e){
-	if (debug) std::cout << "POiloop at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
-	assert(!impossible_case(x));
-	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
-	MatrixSlices3D &PX = PX_by_mtype(type);
-	energy_t tmp = INF;
-	if (i<j && k<l ) { 
-		tmp = PX.get(i+1,j,k,l-1) + get_e_stP(i,l);
-		if(e==tmp){
-			Trace_PX(i+1,j,k,l-1,type,PX.get(i+1,j,k,l-1));
-			return;
-		}
-	}
-	cand_pos_t max_d = std::min(j,i+MAXLOOP);
-	for(cand_pos_t d= i+1; d<max_d; ++d){
-		cand_pos_t min_dp = std::max(l-MAXLOOP,k);
-		for (cand_pos_t dp=l-1; dp >min_dp; --dp) {
-			if (!(pair[S_[d]][S_[dp]]>0)) continue;
-			tmp = get_intP(i,d,dp,l) + PX.get(d,j,k,dp);
-			if(e==tmp){
-				Trace_PX(d,j,k,dp,type,PX.get(d,j,k,dp));
-				return;
-			}
-		}
-	}
-	UNREACHABLE();
-}
+// void pseudo_loop::Trace_PLiloop(const Index4D &x, MType type, energy_t e){
+// 	if (debug) std::cout << "PLiloop at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
+// 	assert(!impossible_case(x));
+// 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
+// 	MatrixSlices3D &PX = PX_by_mtype(type);
+// 	energy_t tmp = INF;
+// 	if (i+TURN+2<j) { 
+// 		tmp = PX.get(i+1,j-1,k,l) + get_e_stP(i,j);
+// 		if(e==tmp){
+// 			Trace_PX(i+1,j-1,k,l,type,PX.get(i+1,j-1,k,l));
+// 			return;
+// 		}
+// 	}
+// 	cand_pos_t max_d = std::min(j,i+MAXLOOP);
+// 	for(cand_pos_t d= i+1; d<max_d; ++d){
+// 		cand_pos_t min_dp = std::max(d+TURN,j-MAXLOOP);
+// 		for(cand_pos_t dp = j-1; dp > min_dp; --dp){
+// 			if (!(pair[S_[d]][S_[dp]]>0)) continue;
+// 			tmp = get_intP(i,d,dp,j) + PX.get(d,dp,k,l);
+// 			if(e==tmp){
+// 				Trace_PX(d,dp,k,l,type,PX.get(d,dp,k,l));
+// 				return;
+// 			}
+// 		}
+// 	}
+// 	UNREACHABLE();
+// }
+// void pseudo_loop::Trace_PMiloop(const Index4D &x, MType type, energy_t e){
+// 	if (debug) std::cout << "PMiloop at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
+// 	assert(!impossible_case(x));
+// 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
+// 	MatrixSlices3D &PX = PX_by_mtype(type);
+// 	energy_t tmp = INF;
+// 	if (i<j && k<l) {
+// 		tmp = PX.get(i,j-1,k+1,l) + get_e_stP(j-1,k+1);
+// 		if(e==tmp){
+// 			Trace_PX(i,j-1,k+1,l,type,PX.get(i,j-1,k+1,l));
+// 			return;
+// 		}
+// 	}
+// 	cand_pos_t max_d = std::max(i,j-MAXLOOP);
+// 	for(cand_pos_t d= j-1; d>max_d; --d){
+// 		cand_pos_t min_dp = std::min(l,k+MAXLOOP); // could switch these here so that we are increasing in the first for like all the others
+// 		for (cand_pos_t dp=k+1; dp <min_dp; ++dp) {
+// 			if (!(pair[S_[d]][S_[dp]]>0)) continue;
+// 			tmp = get_intP(d,j,k,dp) + PX.get(i,d,dp,l);
+// 			if(e==tmp){
+// 				Trace_PX(i,d,dp,l,type,PX.get(i,d,dp,l));
+// 				return;
+// 			}
+// 		}
+// 	}
+// 	UNREACHABLE();
+// }
+// void pseudo_loop::Trace_PRiloop(const Index4D &x, MType type, energy_t e){
+// 	if (debug) std::cout << "PRiloop at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
+// 	assert(!impossible_case(x));
+// 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
+// 	MatrixSlices3D &PX = PX_by_mtype(type);
+// 	energy_t tmp = INF;
+// 	if (k+TURN+2<l) { 
+// 		tmp = PX.get(i,j,k+1,l-1) + get_e_stP(k,l);
+// 		if(e==tmp){
+// 			Trace_PX(i,j,k+1,l-1,type,PX.get(i,j,k+1,l-1));
+// 			return;
+// 		}
+// 	}
+// 	cand_pos_t max_d = std::min(l,k+MAXLOOP);
+// 	for(cand_pos_t d= k+1; d<max_d; ++d){
+// 		cand_pos_t min_dp = std::max(d+TURN,l-MAXLOOP);
+// 		for(cand_pos_t dp=l-1; dp > min_dp; --dp){
+// 			if (!(pair[S_[d]][S_[dp]]>0)) continue;
+// 			tmp = get_intP(k,d,dp,l) + PX.get(i,j,d,dp);
+// 			if(e==tmp){
+// 				Trace_PX(i,j,d,dp,type,PX.get(i,j,d,dp));
+// 				return;
+// 			}
+// 		}
+// 	}
+// 	UNREACHABLE();
+// }
+// void pseudo_loop::Trace_POiloop(const Index4D &x, MType type, energy_t e){
+// 	if (debug) std::cout << "POiloop at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
+// 	assert(!impossible_case(x));
+// 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
+// 	MatrixSlices3D &PX = PX_by_mtype(type);
+// 	energy_t tmp = INF;
+// 	if (i<j && k<l ) { 
+// 		tmp = PX.get(i+1,j,k,l-1) + get_e_stP(i,l);
+// 		if(e==tmp){
+// 			Trace_PX(i+1,j,k,l-1,type,PX.get(i+1,j,k,l-1));
+// 			return;
+// 		}
+// 	}
+// 	cand_pos_t max_d = std::min(j,i+MAXLOOP);
+// 	for(cand_pos_t d= i+1; d<max_d; ++d){
+// 		cand_pos_t min_dp = std::max(l-MAXLOOP,k);
+// 		for (cand_pos_t dp=l-1; dp >min_dp; --dp) {
+// 			if (!(pair[S_[d]][S_[dp]]>0)) continue;
+// 			tmp = get_intP(i,d,dp,l) + PX.get(d,j,k,dp);
+// 			if(e==tmp){
+// 				Trace_PX(d,j,k,dp,type,PX.get(d,j,k,dp));
+// 				return;
+// 			}
+// 		}
+// 	}
+// 	UNREACHABLE();
+// }
 // /**
 //  * 
 //  * 
@@ -513,6 +509,7 @@ void pseudo_loop::Trace_POiloop(const Index4D &x, MType type, energy_t e){
 //  * 
 //  */
 void pseudo_loop::Trace_PfromX(const Index4D &x, MType type, energy_t e){
+    if (debug) std::cout << "PfromX at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
     const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
     MatrixSlices3D PfromX = PfromX_by_mtype(type);
     candidate_lists &PfromX_CL = PfromX_CL_by_mtype(type);
@@ -521,7 +518,7 @@ void pseudo_loop::Trace_PfromX(const Index4D &x, MType type, energy_t e){
 
     int lmro_cases = lmro_cases_in_fromX_by_mtype(type);
 
-    int min_energy = generic_decomposition(x.i(), x.j(), x.k(), x.l(), lmro_case(type), PfromX_CL, WP, PfromX);
+    energy_t min_energy = generic_decomposition(x.i(), x.j(), x.k(), x.l(), lmro_case(type), PfromX_CL, WP, PfromX);
 
     // returning results via class members is convenient but
     // dangerous; here we need local copies
@@ -581,7 +578,7 @@ void pseudo_loop::Trace_PfromX(const Index4D &x, MType type, energy_t e){
 //  * 
 //  */
 void pseudo_loop::Trace_PLmloop1(const Index4D &x, MType type, energy_t e){
-	if (debug) std::cout << "PLmloop10 at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
+	if (debug) std::cout << "PLmloop1 at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
 	assert(!impossible_case(x));
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
     recompute_slice_PXmloop0(x, type);
@@ -592,21 +589,23 @@ void pseudo_loop::Trace_PLmloop1(const Index4D &x, MType type, energy_t e){
     assert (min_energy == e);
 
     switch (best_branch_) {
-        case CASE_12G2:
+        case CASE_12G2:{
             Trace_WBP(i,best_d_-1,WBP.get(i,best_d_-1));
             Index4D xp(best_d_,j,k,l);
             Trace_PXmloop0(xp,type,best_tgt_energy_);
             return;
-        case CASE_12G1:
+        }
+        case CASE_12G1:{
             Trace_WBP(best_d_+1,j,WBP.get(best_d_+1,j));
             Index4D xp(i,best_d_,k,l);
             Trace_PXmloop0(xp,type,best_tgt_energy_);
             return;
+        }
     }
 	UNREACHABLE();
 }
 void pseudo_loop::Trace_PMmloop1(const Index4D &x, MType type, energy_t e){
-	if (debug) std::cout << "PMmloop10 at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
+	if (debug) std::cout << "PMmloop1 at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
 	assert(!impossible_case(x));
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
 
@@ -614,26 +613,28 @@ void pseudo_loop::Trace_PMmloop1(const Index4D &x, MType type, energy_t e){
     recompute_slice_PXmloop1(x, type);
 
     candidate_lists &PXmloop0_CL = PXmloop0_CL_by_mtype(type);
-    int min_energy = generic_decomposition(i, j, k, l, CASE_M, PXmloop0_CL, WBP, PMmloop0);
+    energy_t min_energy = generic_decomposition(i, j, k, l, CASE_M, PXmloop0_CL, WBP, PMmloop0);
     assert (min_energy == e);
 
     switch (best_branch_) {
-        case CASE_12G1:
+        case CASE_12G1:{
             Trace_WBP(best_d_+1,j,WBP.get(best_d_+1,j));
             Index4D xp(i,best_d_,k,l);
             Trace_PXmloop0(xp,type,best_tgt_energy_);
             return;
-        case CASE_1G21:
+        }
+        case CASE_1G21:{
             Trace_WBP(k,best_d_-1,WBP.get(k,best_d_-1));
             Index4D xp(i,j,best_d_,l);
             Trace_PXmloop0(xp,type,best_tgt_energy_);
             return;
+        }
     }
 
 	UNREACHABLE();
 }
 void pseudo_loop::Trace_PRmloop1(const Index4D &x, MType type, energy_t e){
-	if (debug) std::cout << "PRmloop10 at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
+	if (debug) std::cout << "PRmloop1 at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
 	assert(!impossible_case(x));
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
 
@@ -641,26 +642,28 @@ void pseudo_loop::Trace_PRmloop1(const Index4D &x, MType type, energy_t e){
     recompute_slice_PXmloop1(x, type);
 
     candidate_lists &PXmloop0_CL = PXmloop0_CL_by_mtype(type);
-    int min_energy = generic_decomposition(i, j, k, l, CASE_R, PXmloop0_CL, WBP, PRmloop0);
+    energy_t min_energy = generic_decomposition(i, j, k, l, CASE_R, PXmloop0_CL, WBP, PRmloop0);
     assert (min_energy == e);
 
     switch (best_branch_) {
-        case CASE_1G21:
+        case CASE_1G21:{
             Trace_WBP(k,best_d_-1,WBP.get(k,best_d_-1));
             Index4D xp(i,j,best_d_,l);
             Trace_PXmloop0(xp,type,best_tgt_energy_);
             return;
-        case CASE_1G12:
+        }
+        case CASE_1G12:{
             Trace_WBP(best_d_+1,l,WBP.get(best_d_+1,l));
             Index4D xp(i,j,k,best_d_);
             Trace_PXmloop0(xp,type,best_tgt_energy_);
             return;
+        }
     }
 	
 	UNREACHABLE();
 }
 void pseudo_loop::Trace_POmloop1(const Index4D &x, MType type, energy_t e){
-	if (debug) std::cout << "POmloop10 at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
+	if (debug) std::cout << "POmloop1 at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
 	assert(!impossible_case(x));
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
 
@@ -668,20 +671,22 @@ void pseudo_loop::Trace_POmloop1(const Index4D &x, MType type, energy_t e){
     recompute_slice_PXmloop1(x, type);
 
     candidate_lists &PXmloop0_CL = PXmloop0_CL_by_mtype(type);
-    int min_energy = generic_decomposition(i, j, k, l, CASE_O, PXmloop0_CL, WBP, POmloop0);
+    energy_t min_energy = generic_decomposition(i, j, k, l, CASE_O, PXmloop0_CL, WBP, POmloop0);
     assert (min_energy == e);
 
     switch (best_branch_) {
-        case CASE_12G2:
+        case CASE_12G2:{
             Trace_WBP(i,best_d_-1,WBP.get(i,best_d_-1));
             Index4D xp(best_d_,j,k,l);
             Trace_PXmloop0(xp,type,best_tgt_energy_);
             return;
-        case CASE_1G12:
+        }
+        case CASE_1G12:{
             Trace_WBP(best_d_+1,l,WBP.get(best_d_+1,l));
             Index4D xp(i,j,k,best_d_);
             Trace_PXmloop0(xp,type,best_tgt_energy_);
             return;
+        }
     }
 	UNREACHABLE();
 }
@@ -691,7 +696,7 @@ void pseudo_loop::Trace_POmloop1(const Index4D &x, MType type, energy_t e){
  * 
  */
 void pseudo_loop::Trace_PLmloop0(const Index4D &x, MType type, energy_t e){
-	if (debug) std::cout << "PLmloop01 at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
+	if (debug) std::cout << "PLmloop0 at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
 	assert(!impossible_case(x));
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
 
@@ -701,16 +706,18 @@ void pseudo_loop::Trace_PLmloop0(const Index4D &x, MType type, energy_t e){
     assert (min_energy == e);
 
     switch (best_branch_) {
-        case CASE_12G2:
+        case CASE_12G2:{
             Trace_WB(i,best_d_-1,WB.get(i,best_d_-1));
             Index4D xp(best_d_,j,k,l);
             Trace_PXmloop0(xp,type,best_tgt_energy_);
             return;
-        case CASE_12G1:
+        }
+        case CASE_12G1:{
             Trace_WB(best_d_+1,j,WB.get(best_d_+1,j));
             Index4D xp(i,best_d_,k,l);
             Trace_PXmloop0(xp,type,best_tgt_energy_);
             return;
+        }
         case CASE_PL:
             Trace_PX(i,j,k,l,type,best_tgt_energy_);
             return;
@@ -718,7 +725,7 @@ void pseudo_loop::Trace_PLmloop0(const Index4D &x, MType type, energy_t e){
 	UNREACHABLE();
 }
 void pseudo_loop::Trace_PMmloop0(const Index4D &x, MType type, energy_t e){
-	if (debug) std::cout << "PMmloop01 at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
+	if (debug) std::cout << "PMmloop0 at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
 	assert(!impossible_case(x));
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
 
@@ -728,16 +735,18 @@ void pseudo_loop::Trace_PMmloop0(const Index4D &x, MType type, energy_t e){
     assert (min_energy == e);
 
     switch (best_branch_) {
-        case CASE_12G1:
+        case CASE_12G1:{
             Trace_WB(best_d_+1,j,WB.get(best_d_+1,j));
             Index4D xp(i,best_d_,k,l);
             Trace_PXmloop0(xp,type,best_tgt_energy_);
             return;
-        case CASE_1G21:
+        }
+        case CASE_1G21:{
             Trace_WB(k,best_d_-1,WB.get(k,best_d_-1));
             Index4D xp(i,j,best_d_,l);
             Trace_PXmloop0(xp,type,best_tgt_energy_);
             return;
+        }
         case CASE_PM:
             Trace_PX(i,j,k,l,type,best_tgt_energy_);
             return;
@@ -746,7 +755,7 @@ void pseudo_loop::Trace_PMmloop0(const Index4D &x, MType type, energy_t e){
     UNREACHABLE();
 }
 void pseudo_loop::Trace_PRmloop0(const Index4D &x, MType type, energy_t e){
-	if (debug) std::cout << "PRmloop01 at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
+	if (debug) std::cout << "PRmloop0 at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
 	assert(!impossible_case(x));
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
 
@@ -756,16 +765,18 @@ void pseudo_loop::Trace_PRmloop0(const Index4D &x, MType type, energy_t e){
     assert (min_energy == e);
 
     switch (best_branch_) {
-        case CASE_1G21:
+        case CASE_1G21:{
             Trace_WB(k,best_d_-1,WB.get(k,best_d_-1));
             Index4D xp(i,j,best_d_,l);
             Trace_PXmloop0(xp,type,best_tgt_energy_);
             return;
-        case CASE_1G12:
+        }
+        case CASE_1G12:{
             Trace_WB(best_d_+1,l,WB.get(best_d_+1,j));
             Index4D xp(i,j,k,best_d_);
             Trace_PXmloop0(xp,type,best_tgt_energy_);
             return;
+        }
         case CASE_PR:
             Trace_PX(i,j,k,l,type,best_tgt_energy_);
             return;
@@ -774,7 +785,7 @@ void pseudo_loop::Trace_PRmloop0(const Index4D &x, MType type, energy_t e){
 	UNREACHABLE();
 }
 void pseudo_loop::Trace_POmloop0(const Index4D &x, MType type, energy_t e){
-	if (debug) std::cout << "POmloop01 at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
+	if (debug) std::cout << "POmloop0 at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
 	assert(!impossible_case(x));
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
 
@@ -784,16 +795,18 @@ void pseudo_loop::Trace_POmloop0(const Index4D &x, MType type, energy_t e){
     assert (min_energy == e);
 
     switch (best_branch_) {
-        case CASE_12G2:
+        case CASE_12G2:{
             Trace_WB(i,best_d_-1,WB.get(i,best_d_-1));
             Index4D xp(best_d_,j,k,l);
             Trace_PXmloop0(xp,type,best_tgt_energy_);
             return;
-        case CASE_1G12:
+        }
+        case CASE_1G12:{
             Trace_WB(best_d_+1,l,WB.get(best_d_+1,j));
             Index4D xp(i,j,k,best_d_);
             Trace_PXmloop0(xp,type,best_tgt_energy_);
             return;
+        }
         case CASE_PO:
             Trace_PX(i,j,k,l,type,best_tgt_energy_);
             break;

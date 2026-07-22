@@ -370,7 +370,7 @@ energy_t pseudo_loop::recompute_PX(const Index4D &x, MType type) {
         best_d_  = ax.lend(type);
         best_dp_ = ax.rend(type);
 
-        best_tgt_type_ = pid_by_mtype(type);
+        best_tgt_type_ = 1;
         best_tgt_energy_ = arrow->target_energy();
 
         min_energy = arrow->target_energy() + iloop_energy(x,best_d_,best_dp_,type);
@@ -422,13 +422,13 @@ energy_t pseudo_loop::recompute_PX(const Index4D &x, MType type) {
                 // the energy of candidates (from PLmloop0_CL)
                 // is shifted by the beta2P penalty against PL;
                 // thus we subtract this penalty again!
-                te -=  beta2P(dp,d);
+                te -= bp_penalty;
 
                 temp = te + Liloop_energy(x,d,dp);
 
                 if (temp < min_energy) {
                     min_energy = temp;
-                    best_tgt_type_ = pid_by_mtype(type);
+                    best_tgt_type_ = 1;
                     best_tgt_energy_ = te;
                     best_d_ = d;
                     best_dp_ = dp;
@@ -443,13 +443,13 @@ energy_t pseudo_loop::recompute_PX(const Index4D &x, MType type) {
                 if (w > INF/2) continue;
 
                 // cf. PL case
-                int te = w - beta2P(d,dp);
+                int te = w - bp_penalty;
 
                 temp = te + Miloop_energy(x,d,dp);
 
                 if (temp < min_energy) {
                     min_energy = temp;
-                    best_tgt_type_ = pid_by_mtype(type);
+                    best_tgt_type_ = 1;
                     best_tgt_energy_ = te;
                     best_d_ = d;
                     best_dp_ = dp;
@@ -463,13 +463,13 @@ energy_t pseudo_loop::recompute_PX(const Index4D &x, MType type) {
                 int w = CL.find_candidate(x.i(),x.j(),d,dp);
                 if (w > INF/2) continue;
 
-                int te = w - beta2P(dp,d);
+                int te = w - bp_penalty;
 
                 temp = te + Riloop_energy(x,d,dp);
 
                 if (temp < min_energy) {
                     min_energy = temp;
-                    best_tgt_type_ = pid_by_mtype(type);
+                    best_tgt_type_ = 1;
                     best_tgt_energy_ = te;
                     best_d_ = d;
                     best_dp_ = dp;
@@ -485,13 +485,13 @@ energy_t pseudo_loop::recompute_PX(const Index4D &x, MType type) {
                 if (d <= x.i() || (x.l() - dp + d - x.i()) > MAXLOOP)
                     continue;
 
-                int te = c.second - beta2P(d,dp);
+                int te = c.second - bp_penalty;
 
                 temp = te + Oiloop_energy(x,d,dp);
 
                 if (temp < min_energy) {
                     min_energy = temp;
-                    best_tgt_type_ = pid_by_mtype(type);
+                    best_tgt_type_ = 1;
                     best_tgt_energy_ = te;
                     best_d_ = d;
                     best_dp_ = dp;
@@ -505,8 +505,8 @@ energy_t pseudo_loop::recompute_PX(const Index4D &x, MType type) {
     temp = calc_PXmloop(x, type) + bp_penalty;
     if (temp < min_energy) {
         min_energy = temp;
-        best_tgt_energy_ = temp - bp_penalty - ap_penalty - penalty(x,beta2P,type);
-        best_tgt_type_ = mloop1_pid_by_mtype(type);
+        best_tgt_energy_ = temp - bp_penalty - ap_penalty - bp_penalty;
+        best_tgt_type_ = 2;
         best_d_ = x_shrunk.lend(type);
         best_dp_ = x_shrunk.rend(type);
     }
@@ -516,10 +516,42 @@ energy_t pseudo_loop::recompute_PX(const Index4D &x, MType type) {
     if (temp < min_energy) {
         min_energy = temp;
         best_tgt_energy_ = temp - penalty(x,gamma2,type);
-        best_tgt_type_ = from_pid_by_mtype(type);
+        best_tgt_type_ = 3;
         best_d_ = x_shrunk.lend(type);
         best_dp_ = x_shrunk.rend(type);
     }
 
     return min_energy;
+}
+
+energy_t pseudo_loop::Liloop_energy(const Index4D &x, cand_pos_t d, cand_pos_t dp){
+    if ( d == x.i()+1 && dp == x.j()-1 ) {
+        return get_e_stP(x.i(),x.j());
+    } else {
+        return get_intP(x.i(),d,dp,x.j());
+    }
+}
+
+energy_t pseudo_loop::Miloop_energy(const Index4D &x, cand_pos_t d, cand_pos_t dp){
+    if ( d == x.j()-1 && dp == x.k()+1 ) {
+        return get_e_stP(d,dp);
+    } else {
+        return get_intP(d,x.j(),x.k(),dp);
+    }
+}
+
+energy_t pseudo_loop::Riloop_energy(const Index4D &x, cand_pos_t d, cand_pos_t dp){
+    if ( d == x.k()+1 && dp == x.l()-1 ) {
+        return get_e_stP(x.k(),x.l());
+    } else {
+        return get_intP(x.k(),d,dp,x.l());
+    }
+}
+
+energy_t pseudo_loop::Oiloop_energy(const Index4D &x, cand_pos_t d, cand_pos_t dp){
+    if ( d == x.i()+1 && dp == x.l()-1 ) {
+        return get_e_stP(x.i(),x.l());
+    } else {
+        return get_intP(x.i(),d,dp,x.l());
+    }
 }

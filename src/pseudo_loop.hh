@@ -12,7 +12,7 @@
 #include "ViennaRNA/loops.hh"
 #include "ViennaRNA/pair_mat.hh"
 #include "ViennaRNA/params/io.hh"
-#define debug 0
+#define debug 1
 
 #ifdef NDEBUG
 	#define UNREACHABLE() __builtin_unreachable()
@@ -139,8 +139,8 @@ private:
 	energy_t calc_PMiloop(const Index4D &x, MType type);
 	energy_t calc_POiloop(const Index4D &x, MType type);
 
-	energy_t calc_WB(cand_pos_t i, cand_pos_t l);
-	energy_t calc_WP(cand_pos_t i, cand_pos_t l);
+	// energy_t calc_WB(cand_pos_t i, cand_pos_t l);
+	// energy_t calc_WP(cand_pos_t i, cand_pos_t l);
 
 
 	// Traceback //
@@ -166,16 +166,21 @@ private:
 
 	void Trace_PK(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l, energy_t e);
 	void Trace_PX(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l, MType type, energy_t e);
-	void Trace_PXiloop(const Index4D &x, MType type, energy_t e);
+	// void Trace_PXiloop(const Index4D &x, MType type, energy_t e);
 	void Trace_PXmloop(const Index4D &x, MType type, energy_t e);
 	void Trace_PXmloop0(const Index4D &x, MType type, energy_t e);
 	void Trace_PXmloop1(const Index4D &x, MType type, energy_t e);
 	void Trace_PfromX(const Index4D &x, MType type, energy_t e);
 
-	void Trace_PLiloop(const Index4D &x, MType type, energy_t e);
-	void Trace_PMiloop(const Index4D &x, MType type, energy_t e);
-	void Trace_PRiloop(const Index4D &x, MType type, energy_t e);
-	void Trace_POiloop(const Index4D &x, MType type, energy_t e);
+	// void Trace_PLiloop(const Index4D &x, MType type, energy_t e);
+	// void Trace_PMiloop(const Index4D &x, MType type, energy_t e);
+	// void Trace_PRiloop(const Index4D &x, MType type, energy_t e);
+	// void Trace_POiloop(const Index4D &x, MType type, energy_t e);
+	energy_t Liloop_energy(const Index4D &x, cand_pos_t d, cand_pos_t dp);
+	energy_t Miloop_energy(const Index4D &x, cand_pos_t d, cand_pos_t dp);
+	energy_t Riloop_energy(const Index4D &x, cand_pos_t d, cand_pos_t dp);
+	energy_t Oiloop_energy(const Index4D &x, cand_pos_t d, cand_pos_t dp);
+	energy_t iloop_energy(const Index4D &x, cand_pos_t d, cand_pos_t dp, MType type);
 
 	void Trace_PLmloop0(const Index4D &x, MType type, energy_t e);
 	void Trace_PMmloop0(const Index4D &x, MType type, energy_t e);
@@ -254,7 +259,7 @@ private:
     int best_dp_; //!< best second split point (interior loop)
     int best_branch_; //!< index of best branch
     bool decomposing_branch_; //!< whether best branch is decomposing
-    int best_tgt_type_;
+    int best_tgt_type_; // 1 = Xiloop, 2 = Xmloop, 3 = fromX
     int best_tgt_energy_;
 	// cases for the generic decomposition
     static const int CASE_12G2 = 1<<0;
