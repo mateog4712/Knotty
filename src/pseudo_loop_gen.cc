@@ -363,7 +363,7 @@ energy_t pseudo_loop::recompute_PX(const Index4D &x, MType type) {
     }
 
     // if there is a trace arrow, use it
-    //
+    // This is an internal loop trace arrow
     const TraceArrow *arrow = tas_by_mtype(type).trace_arrow_from(x);
     if ( arrow != nullptr ) {
         auto ax = arrow->x(x,type);

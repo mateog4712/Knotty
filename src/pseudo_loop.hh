@@ -187,11 +187,6 @@ private:
 	void Trace_PRmloop1(const Index4D &x, MType type, energy_t e);
 	void Trace_POmloop1(const Index4D &x, MType type, energy_t e);
 
-	// void Trace_PfromL(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,MType type, energy_t e);
-	// void Trace_PfromM(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,MType type, energy_t e);
-	// void Trace_PfromR(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,MType type, energy_t e);
-	// void Trace_PfromO(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,MType type, energy_t e);
-
 	void compute_energy (cand_pos_t i, cand_pos_t j);
 	energy_t HairpinE(const std::string& seq, cand_pos_t i, cand_pos_t j);
 	energy_t compute_internal(cand_pos_t i, cand_pos_t j);

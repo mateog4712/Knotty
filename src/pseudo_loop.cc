@@ -373,16 +373,6 @@ void pseudo_loop::Trace_PXiloop(const Index4D &x, MType type, energy_t e){
     UNREACHABLE();
 }
 
-void pseudo_loop::Trace_PfromX(const Index4D &x, MType type,energy_t e){
-    switch(type) {
-    case MType::L: return Trace_PfromL(x.i(),x.j(),x.k(),x.l(),type,e);
-    case MType::M: return Trace_PfromM(x.i(),x.j(),x.k(),x.l(),type,e);
-    case MType::R: return Trace_PfromR(x.i(),x.j(),x.k(),x.l(),type,e);
-    case MType::O: return Trace_PfromO(x.i(),x.j(),x.k(),x.l(),type,e);
-    }
-    UNREACHABLE();
-}
-
 void pseudo_loop::Trace_PXmloop1(const Index4D &x, MType type, energy_t e){
 	if (debug) std::cout << "PXmloop10 at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
     switch(type) {
@@ -410,35 +400,55 @@ void pseudo_loop::Trace_PX(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,
 	fres[x.lend(type)] = x.rend(type);
 	fres[x.rend(type)] = x.lend(type);
 
-	if (ptype_closing>0){
-		energy_t tmp = calc_PXmloop(x,type);
-		if(e==tmp){
-			Trace_PXmloop(x,type,tmp);
-			return;
-		}
-		if (x.difference(type)>TURN){
-			if(type == MType::O){
-				if(x.i()==x.j() && x.k()==x.l()){
-					if(e==gamma2(x.l(),x.i())) return;
-				}
-			}
-			Index4D xp(x);
-			xp.shrink(type);
-			MatrixSlices3D &PfromX = PfromX_by_mtype(type);
-			tmp = PfromX.get(xp) + penalty(xp, gamma2, type);
-			if(e==tmp){
-				Trace_PfromX(xp,type,PfromX.get(xp));
-				return;
-			}
-		}
-		tmp = calc_PXiloop(x, type);
-		if(e==tmp){
-			Trace_PXiloop(x,type,tmp);
-			return;
+	if(type == MType::M){
+		if(x.i()==x.j() && x.k()==x.l()){
+			if(e==gamma2(x.l(),x.i())) return;
 		}
 	}
+	energy_t en = recompute_PX(x,type);
+	assert(e == en);
+
+	Index4D xp = x;
+    xp.set(best_d_, best_dp_, type);
+
 	UNREACHABLE();
 }
+// void pseudo_loop::Trace_PX(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l, MType type, energy_t e){
+// 	if (debug) std::cout << "PX at " << i << " and " << j << " and " << k << " and " << l << " with type: " << type << " and en: " << e << std::endl;
+// 	const Index4D x(i,j,k,l);
+// 	const int ptype_closing = pair[S_[x.lend(type)]][S_[x.rend(type)]];
+// 	fres[x.lend(type)] = x.rend(type);
+// 	fres[x.rend(type)] = x.lend(type);
+
+// 	if (ptype_closing>0){
+// 		energy_t tmp = calc_PXmloop(x,type);
+// 		if(e==tmp){
+// 			Trace_PXmloop(x,type,tmp);
+// 			return;
+// 		}
+// 		if (x.difference(type)>TURN){
+// 			if(type == MType::M){
+// 				if(x.i()==x.j() && x.k()==x.l()){
+// 					if(e==gamma2(x.l(),x.i())) return;
+// 				}
+// 			}
+// 			Index4D xp(x);
+// 			xp.shrink(type);
+// 			MatrixSlices3D &PfromX = PfromX_by_mtype(type);
+// 			tmp = PfromX.get(xp) + penalty(xp, gamma2, type);
+// 			if(e==tmp){
+// 				Trace_PfromX(xp,type,PfromX.get(xp));
+// 				return;
+// 			}
+// 		}
+// 		tmp = calc_PXiloop(x, type);
+// 		if(e==tmp){
+// 			Trace_PXiloop(x,type,tmp);
+// 			return;
+// 		}
+// 	}
+// 	UNREACHABLE();
+// }
 
 energy_t pseudo_loop::generic_decomposition(int i, int j, int k, int l, int decomp_cases, candidate_lists &CL, const TriangleMatrix &w, const MatrixSlices3D &PX, int LMRO_ndcases, energy_t penfun) {
     auto x = Index4D(i,j,k,l);
@@ -466,7 +476,7 @@ energy_t pseudo_loop::generic_decomposition(int i, int j, int k, int l, int deco
     }
 
     if (decomp_cases & CASE_12G1) {
-        // case 1G21
+        // case 12G1
         for (int d = i; d < j; d++) {
             int px_e = PX.get_uc(i, d, k, l);
             int temp = px_e + w.get_uc(d + 1, j);

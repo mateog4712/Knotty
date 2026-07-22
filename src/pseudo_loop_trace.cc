@@ -512,58 +512,69 @@ void pseudo_loop::Trace_POiloop(const Index4D &x, MType type, energy_t e){
 //  * 
 //  * 
 //  */
-// void pseudo_loop::Trace_PfromL(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,MType type, energy_t e){
-// 	if (debug) std::cout << "PfromL at " << i << " and " << j << " and " << k << " and " << l << " with type: " << type << std::endl;
-// 	Matrix4D &PfromXprime = PfromXprime_by_mtype(type);
-// 	for(cand_pos_t d=i; d<=j; ++d){
-// 		energy_t tmp = calc_WP(i,d-1) + PfromXprime.get(d,j,k,l);
-// 		if(e==tmp){
-// 			Trace_WP(i,d-1,calc_WP(i,d-1));
-// 			Trace_PfromXprime(d,j,k,l,type,PfromXprime.get(d,j,k,l));
-// 			return;
-// 		}
-// 	}
-// 	UNREACHABLE();
-// }
-// void pseudo_loop::Trace_PfromM(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,MType type, energy_t e){
-// 	if (debug) std::cout << "PfromM at " << i << " and " << j << " and " << k << " and " << l << " with type: " << type << std::endl;
-// 	Matrix4D &PfromXprime = PfromXprime_by_mtype(type);
-// 	for(cand_pos_t d=i; d<=j; ++d){
-// 		energy_t tmp = PfromXprime.get(i,d,k,l) + calc_WP(d+1,j);
-// 		if(e==tmp){
-// 			Trace_PfromXprime(i,d,k,l,type,PfromXprime.get(i,d,k,l));
-// 			Trace_WP(d+1,j,calc_WP(d+1,j));
-// 			return;
-// 		}
-// 	}
-// 	UNREACHABLE();
-// }
-// void pseudo_loop::Trace_PfromR(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,MType type, energy_t e){
-// 	if (debug) std::cout << "PfromR at " << i << " and " << j << " and " << k << " and " << l << " with type: " << type << std::endl;
-// 	Matrix4D &PfromXprime = PfromXprime_by_mtype(type);
-// 	for(cand_pos_t d=k; d<=l; ++d){
-// 		energy_t tmp = calc_WP(k,d-1) + PfromXprime.get(i,j,d,l);
-// 		if(e==tmp){
-// 			Trace_WP(k,d-1,calc_WP(k,d-1));
-// 			Trace_PfromXprime(i,j,d,l,type,PfromXprime.get(i,j,d,l));
-// 			return;
-// 		}
-// 	}
-// 	UNREACHABLE();
-// }
-// void pseudo_loop::Trace_PfromO(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,MType type, energy_t e){
-// 	if (debug) std::cout << "PfromO at " << i << " and " << j << " and " << k << " and " << l << " with type: " << type << std::endl;
-// 	Matrix4D &PfromXprime = PfromXprime_by_mtype(type);
-// 	for(cand_pos_t d=i; d<=j; ++d){
-// 		energy_t tmp = calc_WP(i,d-1) + PfromXprime.get(d,j,k,l);
-// 		if(e==tmp){
-// 			Trace_WP(i,d-1,calc_WP(i,d-1));
-// 			Trace_PfromXprime(d,j,k,l,type,PfromXprime.get(d,j,k,l));
-// 			return;
-// 		}
-// 	}
-// 	UNREACHABLE();
-// }
+void pseudo_loop::Trace_PfromX(const Index4D &x, MType type, energy_t e){
+    const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
+    MatrixSlices3D PfromX = PfromX_by_mtype(type);
+    candidate_lists &PfromX_CL = PfromX_CL_by_mtype(type);
+
+    recompute_slice_PfromX(x,type);
+
+    int lmro_cases = lmro_cases_in_fromX_by_mtype(type);
+
+    int min_energy = generic_decomposition(x.i(), x.j(), x.k(), x.l(), lmro_case(type), PfromX_CL, WP, PfromX);
+
+    // returning results via class members is convenient but
+    // dangerous; here we need local copies
+    int best_branch = best_branch_;
+    int best_d = best_d_;
+    int best_tgt_energy = best_tgt_energy_;
+
+    Index4D x_tgt = x;
+
+    auto penfun = [](int i, int j) { return gamma2(i, j) + PB_penalty; }; // Why do penfun here, just pass gamma and do + PB
+
+    // handle the lrmo cases outside of generic_decomposition,
+    // since it would requires valid matrix entries in PX matrices
+    // Mateo 2026: The idea here is that tgt goes to a PX if it finds something here, else: it is chopping a WP off
+    for (auto type: {MType::L, MType::M, MType::R, MType::O}) {
+        int lmro_case = (1 << ((int)type + 4));
+        if (lmro_cases & lmro_case) {
+            int px_e = recompute_PX(x, type);
+            int temp = px_e + penalty(x, penfun, type);
+            if (temp == e) { // I think I can move the trace and here and just check if they are equal since this is PX
+                best_branch = lmro_case;
+                best_tgt_energy = px_e;
+                Trace_PX(i,j,k,l,type,best_tgt_energy);
+                return;
+            }
+        }
+    }
+
+    // handle decomposition cases
+    switch (best_branch) {
+        case CASE_12G2:
+            x_tgt.i() = best_d;
+            Trace_WP(x.i(),best_d-1,WP.get(x.i(),best_d-1));
+            Trace_PfromX(x,type,best_tgt_energy);
+            return;
+        case CASE_12G1:
+            x_tgt.j() = best_d;
+            Trace_WP(best_d+1,x.j(),WP.get(best_d+1,x.j()));
+            Trace_PfromX(x,type,best_tgt_energy);
+            return;
+        case CASE_1G21:
+            x_tgt.k() = best_d;
+            Trace_WP(x.k(),best_d-1,WP.get(x.k(),best_d-1));
+            Trace_PfromX(x_tgt,type,best_tgt_energy);
+            return;
+        case CASE_1G12:
+            x_tgt.l() = best_d;
+            Trace_WP(best_d+1,x.l(),WP.get(best_d+1,x.l()));
+            Trace_PfromX(x,type,best_tgt_energy);
+            return;
+    }
+    UNREACHABLE();
+}
 // /**
 //  * 
 //  * 
@@ -573,16 +584,24 @@ void pseudo_loop::Trace_PLmloop1(const Index4D &x, MType type, energy_t e){
 	if (debug) std::cout << "PLmloop10 at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
 	assert(!impossible_case(x));
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
+    recompute_slice_PXmloop0(x, type);
+    recompute_slice_PXmloop1(x, type);
 
-	energy_t tmp = INF;
-	Matrix4D &PX = PX_by_mtype(type);
-	for(cand_pos_t d = i+1; d <= j; ++d){
-        tmp = PX.get(i,d,k,l) + calc_WB(d+1,j);
-        if(e==tmp){
-			Trace_PX(i,d,k,l,type,PX.get(i,d,k,l));
-			Trace_WB(d+1,j,calc_WB(d+1,j));
-			return;
-		}
+    candidate_lists &PXmloop0_CL = PXmloop0_CL_by_mtype(type);
+    energy_t min_energy = generic_decomposition(i, j, k, l, CASE_L, PXmloop0_CL, WBP, PLmloop0);
+    assert (min_energy == e);
+
+    switch (best_branch_) {
+        case CASE_12G2:
+            Trace_WBP(i,best_d_-1,WBP.get(i,best_d_-1));
+            Index4D xp(best_d_,j,k,l);
+            Trace_PXmloop0(xp,type,best_tgt_energy_);
+            return;
+        case CASE_12G1:
+            Trace_WBP(best_d_+1,j,WBP.get(best_d_+1,j));
+            Index4D xp(i,best_d_,k,l);
+            Trace_PXmloop0(xp,type,best_tgt_energy_);
+            return;
     }
 	UNREACHABLE();
 }
@@ -591,16 +610,26 @@ void pseudo_loop::Trace_PMmloop1(const Index4D &x, MType type, energy_t e){
 	assert(!impossible_case(x));
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
 
-	energy_t tmp = INF;
-	Matrix4D &PX = PX_by_mtype(type);
-    for(cand_pos_t d = k+1; d <= l; ++d){
-        tmp = PX.get(i,j,d,l) + calc_WB(k,d-1);
-        if(e==tmp){
-			Trace_PX(i,d,k,l,type,PX.get(i,d,k,l));
-			Trace_WB(d+1,j,calc_WB(d+1,j));
-			return;
-		}
+	recompute_slice_PXmloop0(x, type);
+    recompute_slice_PXmloop1(x, type);
+
+    candidate_lists &PXmloop0_CL = PXmloop0_CL_by_mtype(type);
+    int min_energy = generic_decomposition(i, j, k, l, CASE_M, PXmloop0_CL, WBP, PMmloop0);
+    assert (min_energy == e);
+
+    switch (best_branch_) {
+        case CASE_12G1:
+            Trace_WBP(best_d_+1,j,WBP.get(best_d_+1,j));
+            Index4D xp(i,best_d_,k,l);
+            Trace_PXmloop0(xp,type,best_tgt_energy_);
+            return;
+        case CASE_1G21:
+            Trace_WBP(k,best_d_-1,WBP.get(k,best_d_-1));
+            Index4D xp(i,j,best_d_,l);
+            Trace_PXmloop0(xp,type,best_tgt_energy_);
+            return;
     }
+
 	UNREACHABLE();
 }
 void pseudo_loop::Trace_PRmloop1(const Index4D &x, MType type, energy_t e){
@@ -608,16 +637,26 @@ void pseudo_loop::Trace_PRmloop1(const Index4D &x, MType type, energy_t e){
 	assert(!impossible_case(x));
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
 
-	energy_t tmp = INF;
-	Matrix4D &PX = PX_by_mtype(type);
-    for(cand_pos_t d = k+1; d <= l; ++d){
-        tmp = PX.get(i,j,k,d) + calc_WB(d+1,l);
-        if(e==tmp){
-			Trace_PX(i,j,k,d,type,PX.get(i,j,k,d));
-			Trace_WB(d+1,l,calc_WB(d+1,l));
-			return;
-		}
+    recompute_slice_PXmloop0(x, type);
+    recompute_slice_PXmloop1(x, type);
+
+    candidate_lists &PXmloop0_CL = PXmloop0_CL_by_mtype(type);
+    int min_energy = generic_decomposition(i, j, k, l, CASE_R, PXmloop0_CL, WBP, PRmloop0);
+    assert (min_energy == e);
+
+    switch (best_branch_) {
+        case CASE_1G21:
+            Trace_WBP(k,best_d_-1,WBP.get(k,best_d_-1));
+            Index4D xp(i,j,best_d_,l);
+            Trace_PXmloop0(xp,type,best_tgt_energy_);
+            return;
+        case CASE_1G12:
+            Trace_WBP(best_d_+1,l,WBP.get(best_d_+1,l));
+            Index4D xp(i,j,k,best_d_);
+            Trace_PXmloop0(xp,type,best_tgt_energy_);
+            return;
     }
+	
 	UNREACHABLE();
 }
 void pseudo_loop::Trace_POmloop1(const Index4D &x, MType type, energy_t e){
@@ -625,15 +664,24 @@ void pseudo_loop::Trace_POmloop1(const Index4D &x, MType type, energy_t e){
 	assert(!impossible_case(x));
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
 
-	energy_t tmp = INF;
-	Matrix4D &PX = PX_by_mtype(type);
-	for(cand_pos_t d=k+1; d<=l;++d){
-        tmp=PX.get(i,j,k,d) + calc_WB(d+1,l);
-        if(e==tmp){
-			Trace_PX(i,j,k,d,type,PX.get(i,j,k,d));
-			Trace_WB(d+1,l,calc_WB(d+1,l));
-			return;
-		}
+	recompute_slice_PXmloop0(x, type);
+    recompute_slice_PXmloop1(x, type);
+
+    candidate_lists &PXmloop0_CL = PXmloop0_CL_by_mtype(type);
+    int min_energy = generic_decomposition(i, j, k, l, CASE_O, PXmloop0_CL, WBP, POmloop0);
+    assert (min_energy == e);
+
+    switch (best_branch_) {
+        case CASE_12G2:
+            Trace_WBP(i,best_d_-1,WBP.get(i,best_d_-1));
+            Index4D xp(best_d_,j,k,l);
+            Trace_PXmloop0(xp,type,best_tgt_energy_);
+            return;
+        case CASE_1G12:
+            Trace_WBP(best_d_+1,l,WBP.get(best_d_+1,l));
+            Index4D xp(i,j,k,best_d_);
+            Trace_PXmloop0(xp,type,best_tgt_energy_);
+            return;
     }
 	UNREACHABLE();
 }
@@ -647,14 +695,25 @@ void pseudo_loop::Trace_PLmloop0(const Index4D &x, MType type, energy_t e){
 	assert(!impossible_case(x));
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
 
-	energy_t tmp=INF;
-	Matrix4D &PX = PX_by_mtype(type);
-	for(cand_pos_t d = i; d < j; ++d){
-        tmp = cp_penalty*(d-i) + PX.get(d,j,k,l);
-		if(e==tmp){
-			Trace_PX(d,j,k,l,type,PX.get(d,j,k,l));
-			return;
-		}
+    recompute_slice_PXmloop0(x, type);
+    candidate_lists &PXmloop0_CL = PXmloop0_CL_by_mtype(type);
+    energy_t min_energy = generic_decomposition(i, j, k, l, CASE_L, PXmloop0_CL, WB, PLmloop0, 1, bp_penalty);
+    assert (min_energy == e);
+
+    switch (best_branch_) {
+        case CASE_12G2:
+            Trace_WB(i,best_d_-1,WB.get(i,best_d_-1));
+            Index4D xp(best_d_,j,k,l);
+            Trace_PXmloop0(xp,type,best_tgt_energy_);
+            return;
+        case CASE_12G1:
+            Trace_WB(best_d_+1,j,WB.get(best_d_+1,j));
+            Index4D xp(i,best_d_,k,l);
+            Trace_PXmloop0(xp,type,best_tgt_energy_);
+            return;
+        case CASE_PL:
+            Trace_PX(i,j,k,l,type,best_tgt_energy_);
+            return;
     }
 	UNREACHABLE();
 }
@@ -663,31 +722,55 @@ void pseudo_loop::Trace_PMmloop0(const Index4D &x, MType type, energy_t e){
 	assert(!impossible_case(x));
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
 
-	energy_t tmp = INF;
-	Matrix4D &PX = PX_by_mtype(type);
-	for(cand_pos_t d = i; d < j; ++d){
-        tmp = cp_penalty*(j-d) + PX.get(i,d,k,l);
-        if(e==tmp){
-			Trace_PX(i,d,k,l,type,PX.get(i,d,k,l));
-			return;
-		}
+	recompute_slice_PXmloop0(x, type);
+    candidate_lists &PXmloop0_CL = PXmloop0_CL_by_mtype(type);
+    energy_t min_energy = generic_decomposition(i, j, k, l, CASE_M, PXmloop0_CL, WB, PMmloop0, 1, bp_penalty);
+    assert (min_energy == e);
+
+    switch (best_branch_) {
+        case CASE_12G1:
+            Trace_WB(best_d_+1,j,WB.get(best_d_+1,j));
+            Index4D xp(i,best_d_,k,l);
+            Trace_PXmloop0(xp,type,best_tgt_energy_);
+            return;
+        case CASE_1G21:
+            Trace_WB(k,best_d_-1,WB.get(k,best_d_-1));
+            Index4D xp(i,j,best_d_,l);
+            Trace_PXmloop0(xp,type,best_tgt_energy_);
+            return;
+        case CASE_PM:
+            Trace_PX(i,j,k,l,type,best_tgt_energy_);
+            return;
     }
-	UNREACHABLE();
+
+    UNREACHABLE();
 }
 void pseudo_loop::Trace_PRmloop0(const Index4D &x, MType type, energy_t e){
 	if (debug) std::cout << "PRmloop01 at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
 	assert(!impossible_case(x));
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
 
-	energy_t tmp = INF;
-	Matrix4D &PX = PX_by_mtype(type);
-    for(cand_pos_t d = k; d < l; d++){
-        tmp = cp_penalty*(d-k) + PX.get(i,j,d,l);
-		if(e==tmp){
-			Trace_PX(i,j,d,l,type,PX.get(i,j,d,l));
-			return;
-		}
+	recompute_slice_PXmloop0(x, type);
+    candidate_lists &PXmloop0_CL = PXmloop0_CL_by_mtype(type);
+    energy_t min_energy = generic_decomposition(i, j, k, l, CASE_R, PXmloop0_CL, WB, PRmloop0, CASE_PR, bp_penalty);
+    assert (min_energy == e);
+
+    switch (best_branch_) {
+        case CASE_1G21:
+            Trace_WB(k,best_d_-1,WB.get(k,best_d_-1));
+            Index4D xp(i,j,best_d_,l);
+            Trace_PXmloop0(xp,type,best_tgt_energy_);
+            return;
+        case CASE_1G12:
+            Trace_WB(best_d_+1,l,WB.get(best_d_+1,j));
+            Index4D xp(i,j,k,best_d_);
+            Trace_PXmloop0(xp,type,best_tgt_energy_);
+            return;
+        case CASE_PR:
+            Trace_PX(i,j,k,l,type,best_tgt_energy_);
+            return;
     }
+
 	UNREACHABLE();
 }
 void pseudo_loop::Trace_POmloop0(const Index4D &x, MType type, energy_t e){
@@ -695,14 +778,26 @@ void pseudo_loop::Trace_POmloop0(const Index4D &x, MType type, energy_t e){
 	assert(!impossible_case(x));
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
 
-	energy_t tmp = INF;
-	Matrix4D &PX = PX_by_mtype(type);
-	for(cand_pos_t d = i; d < j; ++d){
-        tmp = cp_penalty*(d-i) + PX.get(d,j,k,l);
-		if(e==tmp){
-			Trace_PX(d,j,k,l,type,PX.get(d,j,k,l));
-			return;
-		}
+	recompute_slice_PXmloop0(x, type);
+    candidate_lists &PXmloop0_CL = PXmloop0_CL_by_mtype(type);
+    energy_t min_energy = generic_decomposition(i, j, k, l, CASE_O, PXmloop0_CL, WB, POmloop0, CASE_PO, bp_penalty);
+    assert (min_energy == e);
+
+    switch (best_branch_) {
+        case CASE_12G2:
+            Trace_WB(i,best_d_-1,WB.get(i,best_d_-1));
+            Index4D xp(best_d_,j,k,l);
+            Trace_PXmloop0(xp,type,best_tgt_energy_);
+            return;
+        case CASE_1G12:
+            Trace_WB(best_d_+1,l,WB.get(best_d_+1,j));
+            Index4D xp(i,j,k,best_d_);
+            Trace_PXmloop0(xp,type,best_tgt_energy_);
+            return;
+        case CASE_PO:
+            Trace_PX(i,j,k,l,type,best_tgt_energy_);
+            break;
+        default: assert(false);
     }
 	UNREACHABLE();
 }
