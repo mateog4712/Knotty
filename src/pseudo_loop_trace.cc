@@ -363,15 +363,15 @@ void pseudo_loop::Trace_PK(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,
     Index4D x = Index4D(i,j,k,l);
     recompute_slice_PK(x);
 
-    for(int d=i+1; d < j; d++){
-        if (PK.get(i,d,k,l) + WP.get(d+1,j) == e){  // 12G1
+    for(cand_pos_t d=i; d <= j; d++){
+        if ((PK.get(i,d,k,l) + WP.get(d+1,j)) == e){  // 12G1
             Trace_PK(i,d,k,l,PK.get(i,d,k,l));
             Trace_WP(d+1,j,WP.get(d+1,j));
             return;
         }
     }
-    for(int d=k+1; d < l; d++){
-        if (PK.get(i,j,d,l) + WP.get(k,d-1) == e){ // 1G21
+    for(cand_pos_t d=k+1; d <= l; d++){
+        if ((PK.get(i,j,d,l) + WP.get(k,d-1)) == e){ // 1G21
             Trace_PK(i,j,d,l,PK.get(i,j,d,l));
             Trace_WP(k,d-1,WP.get(k,d-1));
             return;
@@ -385,10 +385,8 @@ void pseudo_loop::Trace_PK(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,
     for (auto type : {MType::L, MType::M, MType::R, MType::O} ) {
         energy_t px_e = recompute_PX(x, type);
         energy_t pen = penalty(x, gamma2, type) + PB_penalty;
-		std::cout << px_e << "\t" << pen << "\t" << px_e+pen << "\t" << e << std::endl;
         if ((px_e + pen) == e) {
             // best_tgt_type = pid_by_mtype(type); // This could be used to avoid recomputing while in PX
-			std::cout << "I'm here" << std::endl;
             Trace_PX(i,j,k,l,type, px_e);
             return;
         }

@@ -54,7 +54,7 @@ void pseudo_loop::allocate_space()
 	
 	// 4D matrix initialization
 	PK.init(n,index3D);
-	PL.init(n,index3D);
+	PL.init(n,index3D,MAXLOOP);
 	PfromL.init(n,index3D);
 	PLmloop0.init(n,index3D);
 	PLmloop1.init(n,index3D);
@@ -69,7 +69,7 @@ void pseudo_loop::allocate_space()
 	PMmloop0.init(n,index3D);
 	PMmloop1.init(n,index3D);
 
-	PO.init(n,index3D);
+	PO.init(n,index3D,MAXLOOP);
 	PfromO.init(n,index3D);
 	POmloop0.init(n,index3D);
 	POmloop1.init(n,index3D);
@@ -114,7 +114,7 @@ double pseudo_loop::ccj (){
     double energy = W[n]/100.0;
 
 	// backtrack
-	backtrack();
+	// backtrack();
 
 	fill_structure(fres,structure);
 	this->structure = structure.substr(1,n);
@@ -148,10 +148,10 @@ void pseudo_loop::compute_energies(cand_pos_t i, cand_pos_t l)
 			compute_PXmloop1(x,MType::R);
 			compute_PXmloop1(x,MType::O);
 
-			compute_PX(x,MType::L);
+			// compute_PX(x,MType::L);
 			compute_PX(x,MType::M);
 			compute_PX(x,MType::R);
-			compute_PX(x,MType::O);
+			// compute_PX(x,MType::O);
 
 			compute_PfromX(x,MType::L);
 			compute_PfromX(x,MType::M);
@@ -159,6 +159,9 @@ void pseudo_loop::compute_energies(cand_pos_t i, cand_pos_t l)
 			compute_PfromX(x,MType::O);
 
 			compute_PK(x);
+			if(i==1 && j==12 && k==18 && l==27) std::cout << x << " " << PM.get(x) << std::endl;
+			if(i==2 && j==12 && k==18 && l==27) std::cout << x << " " << PM.get(x) << std::endl;
+			if(i==3 && j==12 && k==18 && l==27) std::cout << x << " " << PM.get(x) << std::endl;
 		}
 	}
 }
@@ -322,6 +325,21 @@ void pseudo_loop::compute_PX(const Index4D &x, MType type){
 	if (min_energy < INF/2){
 		PX.setI(x, min_energy);
 	}
+	if(b1 == min_energy && min_energy < INF/2){
+		Index4D xp=x;
+        xp.set(best_d_, best_dp_, type); // I didn't originally set stack or internal loop best_d and best_dp causing incorrect indexing here
+		candidate_lists &PXmloop0_CL = PXmloop0_CL_by_mtype(type);
+		if (PXmloop0_CL.is_candidate(xp)) {
+				tas_by_mtype(type).avoid_trace_arrow();
+		} else {
+				ta->register_trace_arrow(x, xp, type, PX.get(xp)); // Without the min_energy/2, I will get b1 as best branch but it will be invalid causing an error.
+		}
+	}
+	if(x.i()==1 && x.j()==3 && x.k()==27 && x.l()==27 && type == MType::M) std::cout << "In PM: " << x << " " << b1 << " " << b2 << " " << b3 << " with d and dp= " << best_d_ << " " << best_dp_ << std::endl;
+	if(x.i()==1 && x.j()==4 && x.k()==26 && x.l()==27 && type == MType::M) std::cout << "In PM: " << x << " " << b1 << " " << b2 << " " << b3 << " with d and dp= " << best_d_ << " " << best_dp_ << std::endl;
+	// if(x.i()==3 && x.j()==12 && x.k()==18 && x.l()==27 && type == MType::M) std::cout << "In PM: " << x << " " << b1 << " " << b2 << " " << b3 << " with d and dp= " << best_d_ << " " << best_dp_ << std::endl;
+	// if(x.i()==2 && x.j()==12 && x.k()==18 && x.l()==27 && type == MType::M) std::cout << "In PM: " << x << " " << b1 << " " << b2 << " " << b3 << " with d and dp= " << best_d_ << " " << best_dp_ << std::endl;
+	if(x.i()==1 && x.j()==12 && x.k()==18 && x.l()==27 && type == MType::M) std::cout << "In PM: " << x << " " << b1 << " " << b2 << " " << b3 << " with d and dp= " << best_d_ << " " << best_dp_ << std::endl;
 }
 
 void
@@ -415,6 +433,7 @@ void pseudo_loop::Trace_PX(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,
 		}
 	}
 	energy_t en = recompute_PX(x,type);
+	if(e!= en) std::cout << x << " " << e << " " << en << std::endl;
 	assert(e == en);
 
 	Index4D xp = x;

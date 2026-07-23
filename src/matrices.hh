@@ -212,6 +212,7 @@ public:
             //printf("!(i <= j && j < k-1 && k <= l)\n");
             return INF;
         }
+        if((i<=0 || l> n_)) std::cout << i << "\t" << l << std::endl;
         assert(!(i<=0 || l> n_));
 
         return get_uc(i,j,k,l);

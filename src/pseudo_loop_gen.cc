@@ -139,8 +139,7 @@ void pseudo_loop::compute_PK(const Index4D &x){
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
 	energy_t min_energy = INF;
     int best_branch = 0;
-
-	for(cand_pos_t d=i+1; d < j; d++){
+	for(cand_pos_t d=i; d < j; d++){
         energy_t tmp = PK.get(i,d,k,l) + WP.get(d+1,j);  // 12G1
 
         if (tmp < min_energy){
@@ -148,7 +147,7 @@ void pseudo_loop::compute_PK(const Index4D &x){
             best_branch = 1;
         }
     }
-	for(cand_pos_t d=k+1; d < l; d++){
+	for(cand_pos_t d=k+1; d <= l; d++){
         energy_t tmp = PK.get(i,j,d,l) + WP.get(k,d-1);  //1G21
         if (tmp < min_energy){
             min_energy=tmp;
@@ -198,16 +197,23 @@ energy_t pseudo_loop::calc_PLiloop(const Index4D &x, MType type){
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
 
 	MatrixSlices3D &PX = PX_by_mtype(type);
-	energy_t min_energy = INF;
+	energy_t min_energy = INF, tmp = INF;
 	if (i+TURN+2<j) { 
 		min_energy = PX.get(i+1,j-1,k,l) + get_e_stP(i,j);
+		best_d_=i+1;
+        best_dp_=j-1;
 	}
 	cand_pos_t max_d = std::min(j,i+MAXLOOP);
 	for(cand_pos_t d= i+1; d<max_d; ++d){
 		cand_pos_t min_dp = std::max(d+TURN,j-MAXLOOP);
 		for(cand_pos_t dp = j-1; dp > min_dp; --dp){
 			if (!(pair[S_[d]][S_[dp]]>0)) continue;
-			min_energy = std::min(min_energy,get_intP(i,d,dp,j) + PX.get(d,dp,k,l));
+			tmp = get_intP(i,d,dp,j) + PX.get(d,dp,k,l);
+			if(tmp<min_energy){
+				min_energy = tmp;
+				best_d_ = d;
+				best_dp_ = dp;
+			}
 		}
 	}
 	return min_energy;
@@ -217,16 +223,24 @@ energy_t pseudo_loop::calc_PMiloop(const Index4D &x, MType type){
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
 
 	MatrixSlices3D &PX = PX_by_mtype(type);
-	energy_t min_energy = INF;
+	energy_t min_energy = INF, tmp = INF;
 	if (i<j && k<l) {
 		min_energy = PX.get(i,j-1,k+1,l) + get_e_stP(j-1,k+1);
+		best_d_=j-1;
+        best_dp_=k+1;
 	}
+	if(x.i()==1 && x.j()==4 && x.k()==26 && x.l()==27 && type == MType::M) std::cout << "In PM: " << x << " " << PX.get(i,j-1,k+1,l) << " with d and dp= " << best_d_ << " " << best_dp_ << std::endl;
 	cand_pos_t max_d = std::max(i,j-MAXLOOP);
 	for(cand_pos_t d= j-1; d>max_d; --d){
 		cand_pos_t min_dp = std::min(l,k+MAXLOOP); // could switch these here so that we are increasing in the first for like all the others
 		for (cand_pos_t dp=k+1; dp <min_dp; ++dp) {
 			if (!(pair[S_[d]][S_[dp]]>0)) continue;
-			min_energy = std::min(min_energy,get_intP(d,j,k,dp) + PX.get(i,d,dp,l));
+			tmp = get_intP(d,j,k,dp) + PX.get(i,d,dp,l);
+			if(tmp<min_energy){
+				min_energy = tmp;
+				best_d_ = d;
+				best_dp_ = dp;
+			}
 		}
 	}
 	return min_energy;
@@ -236,16 +250,23 @@ energy_t pseudo_loop::calc_PRiloop(const Index4D &x, MType type){
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
 
 	MatrixSlices3D &PX = PX_by_mtype(type);
-	energy_t min_energy = INF;
+	energy_t min_energy = INF, tmp = INF;
 	if (k+TURN+2<l) { 
 		min_energy = PX.get(i,j,k+1,l-1) + get_e_stP(k,l);
+		best_d_=k+1;
+        best_dp_=l-1;
 	}
 	cand_pos_t max_d = std::min(l,k+MAXLOOP);
 	for(cand_pos_t d= k+1; d<max_d; ++d){
 		cand_pos_t min_dp = std::max(d+TURN,l-MAXLOOP);
 		for(cand_pos_t dp=l-1; dp > min_dp; --dp){
 			if (!(pair[S_[d]][S_[dp]]>0)) continue;
-			min_energy = std::min(min_energy,get_intP(k,d,dp,l) + PX.get(i,j,d,dp));
+			tmp = get_intP(k,d,dp,l) + PX.get(i,j,d,dp);
+			if(tmp<min_energy){
+				min_energy = tmp;
+				best_d_ = d;
+				best_dp_ = dp;
+			}
 		}
 	}
 	return min_energy;
@@ -255,16 +276,23 @@ energy_t pseudo_loop::calc_POiloop(const Index4D &x, MType type){
 	const cand_pos_t i = x.i(), j = x.j(), k = x.k(), l = x.l();
 
 	MatrixSlices3D &PX = PX_by_mtype(type);
-	energy_t min_energy = INF;
+	energy_t min_energy = INF, tmp = INF;
 	if (i<j && k<l ) { 
 		min_energy = PX.get(i+1,j,k,l-1) + get_e_stP(i,l);
+		best_d_=i+1;
+        best_dp_=l-1;
 	}
 	cand_pos_t max_d = std::min(j,i+MAXLOOP);
 	for(cand_pos_t d= i+1; d<max_d; ++d){
 		cand_pos_t min_dp = std::max(l-MAXLOOP,k);
 		for (cand_pos_t dp=l-1; dp >min_dp; --dp) {
 			if (!(pair[S_[d]][S_[dp]]>0)) continue;
-			min_energy = std::min(min_energy,get_intP(i,d,dp,l) + PX.get(d,j,k,dp));
+			tmp = get_intP(i,d,dp,l) + PX.get(d,j,k,dp);
+			if(tmp<min_energy){
+				min_energy = tmp;
+				best_d_ = d;
+				best_dp_ = dp;
+			}
 		}
 	}
 	return min_energy;
