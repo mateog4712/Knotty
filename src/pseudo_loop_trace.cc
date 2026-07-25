@@ -795,12 +795,12 @@ void pseudo_loop::Trace_PfromX(const Index4D &x, MType type, energy_t e){
         case CASE_12G2:
             x_tgt.i() = best_d;
             Trace_WP(x.i(),best_d-1,WP.get(x.i(),best_d-1));
-            Trace_PfromX(x,type,best_tgt_energy);
+            Trace_PfromX(x_tgt,type,best_tgt_energy);
             return;
         case CASE_12G1:
             x_tgt.j() = best_d;
             Trace_WP(best_d+1,x.j(),WP.get(best_d+1,x.j()));
-            Trace_PfromX(x,type,best_tgt_energy);
+            Trace_PfromX(x_tgt,type,best_tgt_energy);
             return;
         case CASE_1G21:
             x_tgt.k() = best_d;
@@ -810,7 +810,7 @@ void pseudo_loop::Trace_PfromX(const Index4D &x, MType type, energy_t e){
         case CASE_1G12:
             x_tgt.l() = best_d;
             Trace_WP(best_d+1,x.l(),WP.get(best_d+1,x.l()));
-            Trace_PfromX(x,type,best_tgt_energy);
+            Trace_PfromX(x_tgt,type,best_tgt_energy);
             return;
     }
     UNREACHABLE();

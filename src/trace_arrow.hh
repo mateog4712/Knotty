@@ -12,6 +12,7 @@
 #include "simple_map.hh"
 #include "index4D.hh"
 #include <vector>
+#include <limits>
 
 using ta_key_t=int;
 
@@ -119,10 +120,9 @@ public:
     //! where ij is the 'triangle matrix' index for (i,j)
     typedef std::vector< trace_arrow_row_map_t >  trace_arrow_map_t;
 
-    ta_key_t
-    ta_key(int k, int l) const {
+    ta_key_t ta_key(int k, int l) const {
         ta_key_t value = k*n_ - l;
-        assert(value > 0 && value < std::numeric_limits<int>::max());
+        assert(value > 0 && value < std::numeric_limits<ta_key_t>::max());
         return value;
     }
 
