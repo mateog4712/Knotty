@@ -6,12 +6,8 @@ candidate_lists::list_t candidate_lists::empty_list = candidate_lists::list_t();
  *  @brief push candidate with information w, i, to front of CL
  */
 void candidate_lists::push_candidate(const Index4D &x, int w) {
-
-    assert( w >= std::numeric_limits<energy_ts>::min()
-            && w <= std::numeric_limits<energy_ts>::max() );
-
-    assert( x.i() >= std::numeric_limits<index_t>::min()
-            && x.i() <= std::numeric_limits<index_t>::max() );
+    assert( w >= std::numeric_limits<energy_16t>::min() && w <= std::numeric_limits<energy_16t>::max() );
+    assert( x.i() >= std::numeric_limits<index_t>::min() && x.i() <= std::numeric_limits<index_t>::max() );
 
     cls_[x.j()][index(x.k(),x.l())].push_sorted(x.i(), w);
 }

@@ -12,22 +12,20 @@
 // next PK_candidate saved for that l
 class candidate_PK {
 private:
-    using energy_ts = short int; // type to internally store energies
     using index_t = unsigned short int;
 
     index_t d_;
     index_t j_;
     index_t k_;
 
-    energy_ts w_;
+    energy_16t w_;
 
 public:
-    candidate_PK(size_t d, size_t j, size_t k, int w)
+   candidate_PK(size_t d, size_t j, size_t k, int w)
     : d_(d), j_(j), k_(k), w_(w)
     {
         // make sure we can fit it in a short
-        assert( w >= std::numeric_limits<energy_ts>::min()
-                && w <= std::numeric_limits<energy_ts>::max() );
+        assert( w >= std::numeric_limits<energy_16t>::min() && w <= std::numeric_limits<energy_16t>::max() );
     }
 
     int d() const { return d_; }
@@ -53,7 +51,7 @@ public:
     }
 
     void
-    push_candidate(const Index4D &x, int w) {
+    push_candidate(const Index4D &x, energy_t w) {
         cl_[x.l()].push_back(candidate_PK(x.i(), x.j(), x.k(), w));
     }
 
@@ -75,10 +73,9 @@ public:
 //!
 class candidate_lists {
 public:
-    using energy_ts = short int; // type to internally store energies
     using index_t = unsigned short int; // type for single index (already too small for triangle indices)
 
-    using list_t = SimpleMap<index_t,energy_ts,std::greater<energy_ts>>;
+    using list_t = SimpleMap<index_t,energy_16t,std::greater<energy_16t>>;
 
     template<class CList>
     using list_map_t = SimpleMap<int,CList>;
@@ -112,8 +109,7 @@ public:
      * @returns the candidate list at j,k,l
     * if the list does not exist, return empty list
      */
-    const list_t &
-    get_list(int j, int k, int l) const {
+    const list_t &get_list(cand_pos_t j, cand_pos_t k, cand_pos_t l) const {
         auto it = cls_[j].find(index(k,l));
         return (it!=cls_[j].end())?it->second:empty_list;
     }
@@ -132,7 +128,7 @@ public:
      * @param l
      * @returns on failure returns nullptr, else candidate
      */
-    int find_candidate(int i, int j, int k, int l) const;
+    int find_candidate(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l) const;
 
     int find_candidate(const Index4D &x) const {
         return find_candidate(x.i(),x.j(),x.k(),x.l());
@@ -141,7 +137,7 @@ public:
     /**
     *  @returns whether there is a candidate at location (i,j,k,l)
     */
-    bool is_candidate(int i, int j, int k, int l) const {
+    bool is_candidate(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l) const {
         return (find_candidate(i,j,k,l) < INF/2);
     }
 

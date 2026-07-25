@@ -122,7 +122,7 @@ public:
     ta_key_t
     ta_key(int k, int l) const {
         ta_key_t value = k*n_ - l;
-        assert(value > 0 && value < 4294967295);
+        assert(value > 0 && value < std::numeric_limits<int>::max());
         return value;
     }
 

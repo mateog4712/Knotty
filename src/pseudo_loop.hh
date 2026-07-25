@@ -12,7 +12,7 @@
 #include "ViennaRNA/loops.hh"
 #include "ViennaRNA/pair_mat.hh"
 #include "ViennaRNA/params/io.hh"
-#define debug 1
+#define debug 0
 
 #ifdef NDEBUG
 	#define UNREACHABLE() __builtin_unreachable()

@@ -81,7 +81,7 @@ private:
 
 class Matrix4D {
 public:
-    const pf_t INTERN_INF = std::numeric_limits<energy_16t>::max();
+    const energy_16t INTERN_INF = std::numeric_limits<energy_16t>::max();
 
     //! construct empty
     Matrix4D() {}
@@ -173,8 +173,7 @@ public:
 
 class MatrixSlices3D {
 public:
-    using energy_ts = short int;
-    const energy_ts INTERN_INF = std::numeric_limits<energy_ts>::max();
+    const energy_16t INTERN_INF = std::numeric_limits<energy_16t>::max();
 
     //! construct empty
     MatrixSlices3D() {}
@@ -193,7 +192,7 @@ public:
     }
 
     //! unchecked get
-    int get_uc(int i, int j, int k, int l) const {
+    int get_uc(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l) const {
         assert ( i <= j && j < k-1 && k <= l );
 
         assert(!(i<=0 || l> n_));
@@ -207,7 +206,7 @@ public:
         return get_uc(x.i(),x.j(),x.k(),x.l());
     }
 
-    int get(int i, int j, int k, int l) const {
+    int get(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l) const {
         if (!(i <= j && j < k-1 && k <= l)){
             //printf("!(i <= j && j < k-1 && k <= l)\n");
             return INF;
@@ -222,9 +221,10 @@ public:
         return get(x.i(),x.j(),x.k(),x.l());
     }
 
-    void set(int i, int j, int k, int l, int e) {
-        if (e >= INF) e=INTERN_INF;
-        assert( e >= std::numeric_limits<energy_ts>::min() );
+    void set(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l, cand_pos_t e) {
+        if (e >= INTERN_INF) e=INTERN_INF;
+        if(!(e >= std::numeric_limits<energy_16t>::min())) std::cout << Index4D(i,j,k,l) << " " << e << std::endl;
+        assert( e >= std::numeric_limits<energy_16t>::min() );
 
         m_[index(i,j,k,l)] = e;
     }
@@ -234,16 +234,16 @@ public:
     }
 
     //! set and take care of infinite energy
-    void setI(int i, int j, int k, int l, int e) {
-        if (e >= INF/2) e=INTERN_INF;
-        assert( e >= std::numeric_limits<energy_ts>::min() );
+    // void setI(int i, int j, int k, int l, int e) {
+    //     if (e >= INF/2) e=INTERN_INF;
+    //     assert( e >= std::numeric_limits<energy_16t>::min() );
 
-        m_[index(i,j,k,l)] = e;
-    }
+    //     m_[index(i,j,k,l)] = e;
+    // }
 
-    void setI(const Index4D &x, energy_t e) {
-        setI(x.i(),x.j(),x.k(),x.l(),e);
-    }
+    // void setI(const Index4D &x, energy_t e) {
+    //     setI(x.i(),x.j(),x.k(),x.l(),e);
+    // }
 
     static size_t index3D(cand_pos_t j, cand_pos_t k, cand_pos_t l, const index_offset_t3 &offset) {
         return (offset)[j-1][k-1] + (l-1);
@@ -287,7 +287,7 @@ private:
 
     index_offset_t3 *offset_;
 
-    std::vector<energy_t> m_;
+    std::vector<energy_16t> m_;
 
     size_t index(cand_pos_t i, cand_pos_t j, cand_pos_t k, cand_pos_t l) const { // Is it still -1 here?
         size_t idx = (*offset_)[(j-1)][(k-1)] + (l-1);

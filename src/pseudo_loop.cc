@@ -55,9 +55,9 @@ void pseudo_loop::allocate_space()
 	// 4D matrix initialization
 	PK.init(n,index3D);
 	PL.init(n,index3D,MAXLOOP);
-	PfromL.init(n,index3D);
+	PfromL.init(n,index3D,2);
 	PLmloop0.init(n,index3D);
-	PLmloop1.init(n,index3D);
+	PLmloop1.init(n,index3D,2);
 
 	PR.init(n,index3D);
 	PfromR.init(n,index3D);
@@ -70,9 +70,9 @@ void pseudo_loop::allocate_space()
 	PMmloop1.init(n,index3D);
 
 	PO.init(n,index3D,MAXLOOP);
-	PfromO.init(n,index3D);
+	PfromO.init(n,index3D,2);
 	POmloop0.init(n,index3D);
-	POmloop1.init(n,index3D);
+	POmloop1.init(n,index3D,2);
 }
 
 pseudo_loop::~pseudo_loop()
@@ -114,7 +114,7 @@ double pseudo_loop::ccj (){
     double energy = W[n]/100.0;
 
 	// backtrack
-	// backtrack();
+	backtrack();
 
 	fill_structure(fres,structure);
 	this->structure = structure.substr(1,n);
@@ -138,6 +138,11 @@ void pseudo_loop::compute_energies(cand_pos_t i, cand_pos_t l)
 		for(cand_pos_t k = l; k>=j+2; --k){
 			Index4D x(i,j,k,l);
 
+			compute_PX(x,MType::L);
+			compute_PX(x,MType::M);
+			compute_PX(x,MType::R);
+			compute_PX(x,MType::O);
+
 			compute_PXmloop0(x,MType::L);
 			compute_PXmloop0(x,MType::M);
 			compute_PXmloop0(x,MType::R);
@@ -148,20 +153,12 @@ void pseudo_loop::compute_energies(cand_pos_t i, cand_pos_t l)
 			compute_PXmloop1(x,MType::R);
 			compute_PXmloop1(x,MType::O);
 
-			// compute_PX(x,MType::L);
-			compute_PX(x,MType::M);
-			compute_PX(x,MType::R);
-			// compute_PX(x,MType::O);
-
 			compute_PfromX(x,MType::L);
 			compute_PfromX(x,MType::M);
 			compute_PfromX(x,MType::R);
 			compute_PfromX(x,MType::O);
 
 			compute_PK(x);
-			if(i==1 && j==12 && k==18 && l==27) std::cout << x << " " << PM.get(x) << std::endl;
-			if(i==2 && j==12 && k==18 && l==27) std::cout << x << " " << PM.get(x) << std::endl;
-			if(i==3 && j==12 && k==18 && l==27) std::cout << x << " " << PM.get(x) << std::endl;
 		}
 	}
 }
@@ -207,7 +204,6 @@ void pseudo_loop::compute_P(cand_pos_t i, cand_pos_t l){
         int w = c.w();
         Index4D x(i,c.d(),c.j(),c.k());
         temp = PK.get(x + Index4D(0, -1, 1, -1)) + w;
-
         if (temp < min_energy) {
             min_energy = temp;
         }
@@ -224,8 +220,10 @@ void pseudo_loop::compute_P(cand_pos_t i, cand_pos_t l){
 
 energy_t pseudo_loop::calc_PfromX(const Index4D &x, MType type){
 	if(x.i()==x.j() && x.k()==x.l()){
-		if(type == MType::M || type == MType::O){
-			return gamma2(x.l(),x.i()); // Maybe add else here for other cases.
+		if(type == MType::M){
+			return gamma2(x.l(),x.i()); // Maybe add else here for other cases. 
+		} else {
+			return INF; // It should only exit from M, so this enforces that. Without the INF, O sometimes has similar values.
 		}
 	} else {
 		Index4D xp(x);
@@ -294,7 +292,7 @@ void pseudo_loop::compute_PXmloop0(const Index4D &x, MType type){
 	PXmloop0.set(i,j,k,l,min_energy);
 
 	if (min_energy < INF/2){
-        if ( !decomposing_branch_ ){
+        if (!decomposing_branch_){
             PXmloop0_CL.push_candidate(x, min_energy);
         }
     }
@@ -322,9 +320,8 @@ void pseudo_loop::compute_PX(const Index4D &x, MType type){
 		}
 	}
 	min_energy = std::min({b1,b2,b3});
-	if (min_energy < INF/2){
-		PX.setI(x, min_energy);
-	}
+	PX.set(x, min_energy);
+	
 	if(b1 == min_energy && min_energy < INF/2){
 		Index4D xp=x;
         xp.set(best_d_, best_dp_, type); // I didn't originally set stack or internal loop best_d and best_dp causing incorrect indexing here
@@ -335,11 +332,6 @@ void pseudo_loop::compute_PX(const Index4D &x, MType type){
 				ta->register_trace_arrow(x, xp, type, PX.get(xp)); // Without the min_energy/2, I will get b1 as best branch but it will be invalid causing an error.
 		}
 	}
-	if(x.i()==1 && x.j()==3 && x.k()==27 && x.l()==27 && type == MType::M) std::cout << "In PM: " << x << " " << b1 << " " << b2 << " " << b3 << " with d and dp= " << best_d_ << " " << best_dp_ << std::endl;
-	if(x.i()==1 && x.j()==4 && x.k()==26 && x.l()==27 && type == MType::M) std::cout << "In PM: " << x << " " << b1 << " " << b2 << " " << b3 << " with d and dp= " << best_d_ << " " << best_dp_ << std::endl;
-	// if(x.i()==3 && x.j()==12 && x.k()==18 && x.l()==27 && type == MType::M) std::cout << "In PM: " << x << " " << b1 << " " << b2 << " " << b3 << " with d and dp= " << best_d_ << " " << best_dp_ << std::endl;
-	// if(x.i()==2 && x.j()==12 && x.k()==18 && x.l()==27 && type == MType::M) std::cout << "In PM: " << x << " " << b1 << " " << b2 << " " << b3 << " with d and dp= " << best_d_ << " " << best_dp_ << std::endl;
-	if(x.i()==1 && x.j()==12 && x.k()==18 && x.l()==27 && type == MType::M) std::cout << "In PM: " << x << " " << b1 << " " << b2 << " " << b3 << " with d and dp= " << best_d_ << " " << best_dp_ << std::endl;
 }
 
 void
@@ -372,24 +364,10 @@ void pseudo_loop::Trace_PXmloop(const Index4D &x, MType type, energy_t e){
 
 	Index4D xp(x);
 	xp.shrink(type);
-	MatrixSlices3D &PXmloop1 = PXmloop1_by_mtype(type);
-	energy_t tmp = PXmloop1.get(xp.i(),xp.j(),xp.k(),xp.l())+ ap_penalty + bp_penalty;
-	if(e==tmp){
-		return Trace_PXmloop1(xp,type,PXmloop1.get(xp.i(),xp.j(),xp.k(),xp.l()));
-	}
+	energy_t pen = ap_penalty + bp_penalty;// Don't forget that I don't have the values for PXmloop1 anymore.
+	return Trace_PXmloop1(xp,type,e-pen);
 	UNREACHABLE();
 }
-
-// void pseudo_loop::Trace_PXiloop(const Index4D &x, MType type, energy_t e){
-// 	if (debug) std::cout << "PXiloop at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
-// 	switch(type) {
-//     case MType::L: return Trace_PLiloop(x,type,e);
-//     case MType::M: return Trace_PMiloop(x,type,e);
-//     case MType::R: return Trace_PRiloop(x,type,e);
-//     case MType::O: return Trace_POiloop(x,type,e);
-//     }
-//     UNREACHABLE();
-// }
 
 void pseudo_loop::Trace_PXmloop1(const Index4D &x, MType type, energy_t e){
 	if (debug) std::cout << "PXmloop10 at " << x.i() << " and " << x.j() << " and " << x.k() << " and " << x.l() << " with type: " << type << " and en: " << e << std::endl;
@@ -423,7 +401,6 @@ energy_t pseudo_loop::iloop_energy(const Index4D &x, cand_pos_t d, cand_pos_t dp
 void pseudo_loop::Trace_PX(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l, MType type, energy_t e){
 	if (debug) std::cout << "PX at " << i << " and " << j << " and " << k << " and " << l << " with type: " << type << " and en: " << e << std::endl;
 	const Index4D x(i,j,k,l);
-	const int ptype_closing = pair[S_[x.lend(type)]][S_[x.rend(type)]];
 	fres[x.lend(type)] = x.rend(type);
 	fres[x.rend(type)] = x.lend(type);
 
@@ -451,42 +428,6 @@ void pseudo_loop::Trace_PX(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l,
 	}
 	UNREACHABLE();
 }
-// void pseudo_loop::Trace_PX(cand_pos_t i,cand_pos_t j,cand_pos_t k, cand_pos_t l, MType type, energy_t e){
-// 	if (debug) std::cout << "PX at " << i << " and " << j << " and " << k << " and " << l << " with type: " << type << " and en: " << e << std::endl;
-// 	const Index4D x(i,j,k,l);
-// 	const int ptype_closing = pair[S_[x.lend(type)]][S_[x.rend(type)]];
-// 	fres[x.lend(type)] = x.rend(type);
-// 	fres[x.rend(type)] = x.lend(type);
-
-// 	if (ptype_closing>0){
-// 		energy_t tmp = calc_PXmloop(x,type);
-// 		if(e==tmp){
-// 			Trace_PXmloop(x,type,tmp);
-// 			return;
-// 		}
-// 		if (x.difference(type)>TURN){
-// 			if(type == MType::M){
-// 				if(x.i()==x.j() && x.k()==x.l()){
-// 					if(e==gamma2(x.l(),x.i())) return;
-// 				}
-// 			}
-// 			Index4D xp(x);
-// 			xp.shrink(type);
-// 			MatrixSlices3D &PfromX = PfromX_by_mtype(type);
-// 			tmp = PfromX.get(xp) + penalty(xp, gamma2, type);
-// 			if(e==tmp){
-// 				Trace_PfromX(xp,type,PfromX.get(xp));
-// 				return;
-// 			}
-// 		}
-// 		tmp = calc_PXiloop(x, type);
-// 		if(e==tmp){
-// 			Trace_PXiloop(x,type,tmp);
-// 			return;
-// 		}
-// 	}
-// 	UNREACHABLE();
-// }
 
 energy_t pseudo_loop::generic_decomposition(int i, int j, int k, int l, int decomp_cases, candidate_lists &CL, const TriangleMatrix &w, const MatrixSlices3D &PX, int LMRO_ndcases, energy_t penfun) {
     auto x = Index4D(i,j,k,l);
