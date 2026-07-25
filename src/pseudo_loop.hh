@@ -29,7 +29,7 @@ class pseudo_loop{
 
 public:
 	// constructor
-	pseudo_loop(std::string seq, int dangle);
+	pseudo_loop(std::string seq, bool verbose, int dangle);
 
 	// destructor
 	~pseudo_loop();
@@ -41,6 +41,8 @@ public:
     energy_t get_energy (cand_pos_t i, cand_pos_t j) { if (i>=j) return INF; cand_pos_t ij = index[i]+j-i; return V[ij].energy; }
 
 	std::string structure;
+
+	void print_CL_sizes();
 private:
 
  	// function to allocate space for the arrays
@@ -49,6 +51,7 @@ private:
 	cand_pos_t n;
 	std::string res;
 	std::string seq;
+	bool verbose;
 
 	std::vector<int> fres;
 	vrna_param_t *params_;

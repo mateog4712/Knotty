@@ -41,6 +41,7 @@ const char *args_info_help[] = {
   "  -d, --dangles=INT         Specify the dangle model to be used  (default=`2')",
   "  -P, --paramFile=STRING    Read energy parameters from paramfile, instead of\n                              using the default parameter set.",
   "  -w, --windowing[=INT]     Split the sequence into windows and predict every\n                              window to reduce compute time/space requirement\n                              (default=`125')",
+  "  -v, --verbose             Turn on verbose output  (default=off)",
   "      --noConv              Do not convert DNA into RNA. This will use the\n                              Matthews 2004 parameters for DNA  (default=off)",
   "      --noGU                Turn off G-U and U-G (and G-T and T-G) base pairing\n                              (default=off)",
   "\nThe input sequence is read from standard input, unless it is\ngiven on the command line.\n",
@@ -76,6 +77,7 @@ void clear_given (struct args_info *args_info)
   args_info->dangles_given = 0 ;
   args_info->paramFile_given = 0 ;
   args_info->windowing_given = 0 ;
+  args_info->verbose_given = 0 ;
   args_info->noConv_given = 0 ;
   args_info->noGU_given = 0 ;
 }
@@ -94,6 +96,7 @@ void clear_args (struct args_info *args_info)
   args_info->paramFile_orig = NULL;
   args_info->windowing_arg = 125;
   args_info->windowing_orig = NULL;
+  args_info->verbose_flag = 0;
   args_info->noConv_flag = 0;
   args_info->noGU_flag = 0;
   
@@ -111,8 +114,9 @@ void init_args_info(struct args_info *args_info)
   args_info->dangles_help = args_info_help[4] ;
   args_info->paramFile_help = args_info_help[5] ;
   args_info->windowing_help = args_info_help[6] ;
-  args_info->noConv_help = args_info_help[7] ;
-  args_info->noGU_help = args_info_help[8] ;
+  args_info->verbose_help = args_info_help[7] ;
+  args_info->noConv_help = args_info_help[8] ;
+  args_info->noGU_help = args_info_help[9] ;
   
 }
 
@@ -262,6 +266,8 @@ cmdline_parser_dump(FILE *outfile, struct args_info *args_info)
     write_into_file(outfile, "paramFile", args_info->paramFile_orig, 0);
   if (args_info->windowing_given)
     write_into_file(outfile, "windowing", args_info->windowing_orig, 0);
+  if (args_info->verbose_given)
+    write_into_file(outfile, "verbose", 0, 0 );
   if (args_info->noConv_given)
     write_into_file(outfile, "noConv", 0, 0 );
   if (args_info->noGU_given)
@@ -533,12 +539,13 @@ cmdline_parser_internal (
         { "dangles",	1, NULL, 'd' },
         { "paramFile",	1, NULL, 'P' },
         { "windowing",	2, NULL, 'w' },
+        { "verbose",	0, NULL, 'v' },
         { "noConv",	0, NULL, 0 },
         { "noGU",	0, NULL, 0 },
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVi:o:d:P:w::", long_options, &option_index);
+      c = getopt_long (argc, argv, "hVi:o:d:P:w::v", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -610,6 +617,16 @@ cmdline_parser_internal (
               &(local_args_info.windowing_given), optarg, 0, "125", ARG_INT,
               check_ambiguity, override, 0, 0,
               "windowing", 'w',
+              additional_error))
+            goto failure;
+        
+          break;
+        case 'v':	/* Turn on verbose output.  */
+        
+        
+          if (update_arg((void *)&(args_info->verbose_flag), 0, &(args_info->verbose_given),
+              &(local_args_info.verbose_given), optarg, 0, 0, ARG_FLAG,
+              check_ambiguity, override, 1, 0, "verbose", 'v',
               additional_error))
             goto failure;
         

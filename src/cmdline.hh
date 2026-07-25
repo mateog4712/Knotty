@@ -54,6 +54,8 @@ struct args_info
   int windowing_arg;	/**< @brief Split the sequence into windows and predict every window to reduce compute time/space requirement (default='125').  */
   char * windowing_orig;	/**< @brief Split the sequence into windows and predict every window to reduce compute time/space requirement original value given at command line.  */
   const char *windowing_help; /**< @brief Split the sequence into windows and predict every window to reduce compute time/space requirement help description.  */
+  int verbose_flag;	/**< @brief Turn on verbose output (default=off).  */
+  const char *verbose_help; /**< @brief Turn on verbose output help description.  */
   int noConv_flag;	/**< @brief Do not convert DNA into RNA. This will use the Matthews 2004 parameters for DNA (default=off).  */
   const char *noConv_help; /**< @brief Do not convert DNA into RNA. This will use the Matthews 2004 parameters for DNA help description.  */
   int noGU_flag;	/**< @brief Turn off G-U and U-G (and G-T and T-G) base pairing (default=off).  */
@@ -66,6 +68,7 @@ struct args_info
   unsigned int dangles_given ;	/**< @brief Whether dangles was given.  */
   unsigned int paramFile_given ;	/**< @brief Whether paramFile was given.  */
   unsigned int windowing_given ;	/**< @brief Whether windowing was given.  */
+  unsigned int verbose_given ;	/**< @brief Whether verbose was given.  */
   unsigned int noConv_given ;	/**< @brief Whether noConv was given.  */
   unsigned int noGU_given ;	/**< @brief Whether noGU was given.  */
 

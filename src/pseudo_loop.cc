@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <cassert>
 
-pseudo_loop::pseudo_loop(std::string seq, int dangle) : seq(seq), params_(vrna_params(NULL))
+pseudo_loop::pseudo_loop(std::string seq, bool verbose, int dangle) : seq(seq), verbose(verbose), params_(vrna_params(NULL))
 {
 	n = seq.length();
 	params_->model_details.dangles = dangle;
@@ -113,12 +113,40 @@ double pseudo_loop::ccj (){
 
     double energy = W[n]/100.0;
 
+	if(verbose){
+		print_CL_sizes();
+		ta->print_ta_sizes();
+	}
+
 	// backtrack
 	backtrack();
 
 	fill_structure(fres,structure);
 	this->structure = structure.substr(1,n);
     return energy;
+}
+
+void pseudo_loop::print_CL_sizes()
+{
+    int candidates = 0, PK_candidates = 0, capacity = 0;
+
+    PLmloop0_CL ->get_CL_size(candidates, capacity);
+    PMmloop0_CL->get_CL_size(candidates, capacity);
+    PRmloop0_CL->get_CL_size(candidates, capacity);
+    POmloop0_CL->get_CL_size(candidates, capacity);
+    PfromL_CL->get_CL_size(candidates, capacity);
+    PfromM_CL->get_CL_size(candidates, capacity);
+    PfromR_CL->get_CL_size(candidates, capacity);
+    PfromO_CL->get_CL_size(candidates, capacity);
+
+    for (cand_pos_t j = 1; j <= n; ++j ) {
+         PK_candidates += PK_CL[j].size();
+    }
+
+    //int num_lists = 4*nb_nucleotides*(nb_nucleotides *(nb_nucleotides+1)/2) + nb_nucleotides;
+
+    printf("Total candidates: %d, PK: %d, Normal: %d \n", candidates + PK_candidates, PK_candidates, candidates);
+
 }
 
 void pseudo_loop::compute_energies(cand_pos_t i, cand_pos_t l)
