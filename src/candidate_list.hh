@@ -4,6 +4,7 @@
 #include "index4D.hh"
 #include "matrices.hh"
 #include <limits>
+#include <string>
 
 //#include <memory>
 
@@ -148,7 +149,7 @@ public:
     /**
      * @brief prints information on a single candidate list
      */
-    void print_CL_size() const;
+    void print_CL_size(std::string type) const;
 
     /** @brief adds number of candidates or empty candidate lists to candidates/empty_lists
     *   used in print_CL_sizes

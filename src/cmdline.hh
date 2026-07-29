@@ -54,8 +54,9 @@ struct args_info
   int windowing_arg;	/**< @brief Split the sequence into windows and predict every window to reduce compute time/space requirement (default='125').  */
   char * windowing_orig;	/**< @brief Split the sequence into windows and predict every window to reduce compute time/space requirement original value given at command line.  */
   const char *windowing_help; /**< @brief Split the sequence into windows and predict every window to reduce compute time/space requirement help description.  */
-  int verbose_flag;	/**< @brief Turn on verbose output (default=off).  */
-  const char *verbose_help; /**< @brief Turn on verbose output help description.  */
+  int verbose_arg;	/**< @brief Turn on verbose output (1 gives total statistics while 2 gives individual) (default='0').  */
+  char * verbose_orig;	/**< @brief Turn on verbose output (1 gives total statistics while 2 gives individual) original value given at command line.  */
+  const char *verbose_help; /**< @brief Turn on verbose output (1 gives total statistics while 2 gives individual) help description.  */
   int noConv_flag;	/**< @brief Do not convert DNA into RNA. This will use the Matthews 2004 parameters for DNA (default=off).  */
   const char *noConv_help; /**< @brief Do not convert DNA into RNA. This will use the Matthews 2004 parameters for DNA help description.  */
   int noGU_flag;	/**< @brief Turn off G-U and U-G (and G-T and T-G) base pairing (default=off).  */

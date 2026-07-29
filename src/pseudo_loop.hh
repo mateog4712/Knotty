@@ -29,7 +29,7 @@ class pseudo_loop{
 
 public:
 	// constructor
-	pseudo_loop(std::string seq, bool verbose, int dangle);
+	pseudo_loop(std::string seq, int verbose, int dangle);
 
 	// destructor
 	~pseudo_loop();
@@ -43,6 +43,9 @@ public:
 	std::string structure;
 
 	void print_CL_sizes();
+	void print_CL_sizes_verbose();
+	void print_PK_CL_size(); 
+	void calc_PK_CL_size(int &candidates, int &empty_lists);
 private:
 
  	// function to allocate space for the arrays
@@ -51,7 +54,7 @@ private:
 	cand_pos_t n;
 	std::string res;
 	std::string seq;
-	bool verbose;
+	int verbose;
 
 	std::vector<int> fres;
 	vrna_param_t *params_;

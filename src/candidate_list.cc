@@ -1,4 +1,5 @@
 #include "candidate_list.hh"
+#include <iostream>
 
 candidate_lists::list_t candidate_lists::empty_list = candidate_lists::list_t();
 
@@ -43,13 +44,12 @@ void candidate_lists::get_CL_size(int &candidates, int &capacity) const {
 /**
  * @brief prints information on a single candidate list
  */
-void candidate_lists::print_CL_size() const {
+void candidate_lists::print_CL_size(std::string type) const {
     int candidates = 0, capacity = 0;
     get_CL_size(candidates, capacity);
 
-    printf("\n");
-    // print_type();
-    // printf("\n");
+    std::cout << std::endl;
+    std::cout << type << std::endl;
 
 
     int num_lists=0;

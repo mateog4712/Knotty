@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <cassert>
 
-pseudo_loop::pseudo_loop(std::string seq, bool verbose, int dangle) : seq(seq), verbose(verbose), params_(vrna_params(NULL))
+pseudo_loop::pseudo_loop(std::string seq, int verbose, int dangle) : seq(seq), verbose(verbose), params_(vrna_params(NULL))
 {
 	n = seq.length();
 	params_->model_details.dangles = dangle;
@@ -113,9 +113,12 @@ double pseudo_loop::ccj (){
 
     double energy = W[n]/100.0;
 
-	if(verbose){
+	if(verbose == 1){
 		print_CL_sizes();
 		ta->print_ta_sizes();
+	} else if(verbose == 2){
+		print_CL_sizes_verbose();
+		ta->print_ta_sizes_verbose();
 	}
 
 	// backtrack
@@ -147,6 +150,40 @@ void pseudo_loop::print_CL_sizes()
 
     printf("Total candidates: %d, PK: %d, Normal: %d \n", candidates + PK_candidates, PK_candidates, candidates);
 
+}
+
+void pseudo_loop::print_CL_sizes_verbose() {
+    PfromL_CL->print_CL_size("PfromL_CL");
+    PfromM_CL->print_CL_size("PfromM_CL");
+    PfromR_CL->print_CL_size("PfromR_CL");
+    PfromO_CL->print_CL_size("PfromO_CL");
+
+    PLmloop0_CL->print_CL_size("PLmloop0_CL");
+    PMmloop0_CL->print_CL_size("PMmloop0_CL");
+    PRmloop0_CL->print_CL_size("PRmloop0_CL");
+    POmloop0_CL->print_CL_size("POmloop0_CL");
+
+    print_PK_CL_size();
+    printf("\n");
+
+    print_CL_sizes();
+}
+
+void pseudo_loop::print_PK_CL_size() {
+    int empty_lists = 0;
+    int candidates = 0;
+    calc_PK_CL_size(candidates, empty_lists);
+
+    printf("\nPK\n");
+
+    printf("Num empty lists: %d\n",empty_lists);
+    printf("Num candidates: %d\n", candidates);
+}
+
+void pseudo_loop::calc_PK_CL_size(int &candidates, int &empty_lists) {
+    for (cand_pos_t l = 0; l < n; ++l) {
+        candidates += PK_CL[l].size();
+    }
 }
 
 void pseudo_loop::compute_energies(cand_pos_t i, cand_pos_t l)

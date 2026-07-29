@@ -159,7 +159,7 @@ void seqtoRNA(std::string &sequence){
     }
 }
 
-std::string ccj(std::string seq,double &energy, bool verbose, int dangle){
+std::string ccj(std::string seq,double &energy, int verbose, int dangle){
 	pseudo_loop min_fold(seq, verbose, dangle);
 	energy = min_fold.ccj();
     std::string structure = min_fold.structure;
@@ -215,7 +215,7 @@ int main (int argc, char *argv[])
         }
         double energy;
         std::string structure;
-        structure = ccj(current.sequence,energy,args_info.verbose_flag,args_info.dangles_arg);
+        structure = ccj(current.sequence,energy,args_info.verbose_arg,args_info.dangles_arg);
         print_results(fileO,current.name,current.sequence,structure,energy);
     }
     cmdline_parser_free(&args_info);
